@@ -13,6 +13,30 @@
     --shadow: 0 1px 2px rgba(15,23,42,.04), 0 6px 18px rgba(15,23,42,.05);
     --shadow-2: 0 12px 30px rgba(15,23,42,.08); --radius: 14px;
 }
+body.dark {
+    --bg: #0f172a; --surface: #1e293b; --surface-2: #1a2332; --line: #334155;
+    --line-strong: #475569; --text: #e2e8f0; --muted: #94a3b8; --muted-2: #64748b;
+    --shadow: 0 1px 2px rgba(0,0,0,.2); --shadow-2: 0 12px 30px rgba(0,0,0,.3);
+}
+body.dark .topbar, body.dark .card, body.dark .field, body.dark .panel, body.dark .fold-panel, body.dark .modal, body.dark .folder-box, body.dark .label-card, body.dark .more-menu-list { background: var(--surface); }
+body.dark thead th { background: #1a2332; color: #cbd5e1; }
+body.dark tbody td { background: #1e293b; }
+body.dark tbody tr:nth-child(even) td { background: #1c2838; }
+body.dark tbody tr:hover td { background: #253449; }
+body.dark tbody tr.selected td { background: #1e3050 !important; }
+body.dark .cell, body.dark .select-cell { color: #e2e8f0; }
+body.dark .btn-secondary { background: #1e293b; color: #e2e8f0; border-color: #475569; }
+body.dark .btn-secondary:hover { background: #334155; }
+body.dark .btn-danger { background: #1e293b; }
+body.dark .btn-cancel { background: #1e293b; color: #e2e8f0; }
+body.dark .more-menu>summary { background: #1e293b; color: #e2e8f0; }
+body.dark .table-footer { background: #1e293b; }
+body.dark .panel-head { background: #1a2332; }
+body.dark .shortcut-bar { background: #1a2332; border-top-color: #334155; }
+body.dark input, body.dark select, body.dark textarea { color: #e2e8f0; }
+body.dark .pill-btn { background: #1e293b; border-color: #475569; }
+body.dark .pill-btn:hover { background: #334155; }
+body.dark .fold-head { background: #1a2332; }
 * { box-sizing: border-box }
 html, body { height: 100% }
 body {
@@ -201,6 +225,18 @@ body.label-print-mode .no-print { display: none !important }
 /* ── Shortcut Hint ── */
 .shortcut-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; font-size: 11px; color: var(--muted-2); padding: 8px 16px; border-top: 1px solid var(--line); background: #fafbfc; }
 .shortcut-kbd { display: inline-block; padding: 1px 6px; border-radius: 4px; background: #e5e7eb; color: #374151; font-size: 10px; font-weight: 700; font-family: monospace; margin: 0 2px; }
+body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
+
+/* Toast */
+.toast-container { position: fixed; top: 18px; right: 18px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.16); animation: toastIn .3s ease; pointer-events: auto; max-width: 400px; cursor: pointer; }
+.toast.info { background: #1d4ed8; }
+.toast.success { background: #16a34a; }
+.toast.warn { background: #d97706; }
+.toast.error { background: #dc2626; }
+.toast.removing { animation: toastOut .3s ease forwards; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
 
 /* ── Responsive ── */
 @media (max-width:1200px) {
@@ -246,6 +282,7 @@ body.label-print-mode .no-print { display: none !important }
 </style>
 </head>
 <body>
+<div class="toast-container" id="toastContainer"></div>
 <div class="wrap">
     <!-- TOP BAR -->
     <div class="topbar">
@@ -259,6 +296,7 @@ body.label-print-mode .no-print { display: none !important }
             <button class="btn-secondary" onclick="clearSavedFolders()">清除路径</button>
             <button class="btn-secondary" onclick="saveNow()">立即保存</button>
             <button class="btn-secondary" onclick="uploadToSyncFile()">上传微盘</button>
+            <button class="btn-secondary" id="darkToggle" onclick="toggleDark()" title="切换暗色模式">🌙</button>
             <details class="more-menu">
                 <summary>更多操作</summary>
                 <div class="more-menu-list">
@@ -578,6 +616,21 @@ const todayYmd = (d=new Date()) => { const y=d.getFullYear(),m=String(d.getMonth
 const statusCls = s => (STATUS_MAP[s]||{cls:"s-wait"}).cls;
 const getOp = () => (document.getElementById("operatorInput")?.value||"").trim()||"系统";
 
+/* ── Toast ── */
+function toast(msg, type="info"){
+    const c=document.getElementById("toastContainer");if(!c)return;
+    const el=document.createElement("div");el.className=`toast ${type}`;el.textContent=msg;
+    el.onclick=()=>{el.classList.add("removing");setTimeout(()=>el.remove(),280)};
+    c.appendChild(el);setTimeout(()=>{if(el.parentNode){el.classList.add("removing");setTimeout(()=>el.remove(),280)}},3000);
+}
+/* ── Dark Mode ── */
+function toggleDark(){
+    const on=document.body.classList.toggle("dark");
+    document.getElementById("darkToggle").textContent=on?"☀️":"🌙";
+    try{localStorage.setItem("ti_dark_mode",on?"1":"0")}catch(e){}
+}
+function initDark(){if(lsGet("ti_dark_mode","0")==="1"){document.body.classList.add("dark");document.getElementById("darkToggle").textContent="☀️"}}
+
 function parseCSV(text) {
     const rows=[]; let row=[],cur="",inQ=false; text=(text||"").replace(/^﻿/,"");
     for(let i=0;i<text.length;i++){const ch=text[i],nxt=text[i+1];
@@ -750,15 +803,20 @@ function applyQuickFilter(filter){
 }
 function onFilterChange(){quickFilter="all";document.querySelectorAll(".pill-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter==="all"));renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts()}
 function updatePillCounts(){
-    const inStock=rows.filter(r=>r.status==="在库").length;
-    const pending=rows.filter(r=>r.status==="待检测").length;
-    const inUse=rows.filter(r=>r.status==="已领用").length;
-    const my=rows.filter(r=>r.owner===getOp()).length;
-    const dupId=getDupIds().length;
-    const dupSn=getDupSnCount();
-    const pills=document.querySelectorAll(".pill-btn");
-    const counts={in_stock:inStock,pending:pending,in_use:inUse,my:my,dup_id:dupId,dup_sn:dupSn};
-    pills.forEach(b=>{if(counts[b.dataset.filter]!==undefined)b.innerHTML=b.innerHTML.replace(/<span class="count">.*<\/span>/,"")+` <span class="count">(${counts[b.dataset.filter]})</span>`});
+    const counts={
+        in_stock:rows.filter(r=>r.status==="在库").length,
+        pending:rows.filter(r=>r.status==="待检测").length,
+        in_use:rows.filter(r=>r.status==="已领用").length,
+        my:rows.filter(r=>r.owner===getOp()).length,
+        dup_id:getDupIds().length,
+        dup_sn:getDupSnCount()
+    };
+    const labels={all:"全部",in_stock:"在库",pending:"待检测",in_use:"已领用",my:"👤 我的",month:"📅 本月入库",dup_id:"⚠ 重复编号",dup_sn:"⚠ 重复序列号"};
+    document.querySelectorAll(".pill-btn").forEach(b=>{
+        const f=b.dataset.filter;
+        const cnt=counts[f];
+        b.textContent=cnt!==undefined?`${labels[f]||f} (${cnt})`:labels[f]||f;
+    });
 }
 
 /* ================================================================
@@ -798,7 +856,7 @@ function renderTable(){
     selectionBar();
 
     filtered.forEach(r=>{
-        const tr=document.createElement("tr");if(selectedSet.has(r.uid))tr.classList.add("selected");
+        const tr=document.createElement("tr");tr.dataset.uid=r.uid;if(selectedSet.has(r.uid))tr.classList.add("selected");
         tr.innerHTML=`<td style="text-align:center;width:52px;"><input type="checkbox" ${selectedSet.has(r.uid)?"checked":""} onchange="toggleRowSel('${r.uid}',this.checked)" /></td>`+
             visCols.map(c=>renderCell(r,c)).join("");
         body.appendChild(tr);
@@ -820,19 +878,13 @@ function renderCell(r,col){
 }
 function updateCellInDOM(uidValue,field,value){
     const row=rows.find(r=>r.uid===uidValue);if(!row)return;
-    const col=COLUMNS.find(c=>c.key===field);if(!col||!isColVis(field))return;
-    // Re-render this row in the table
+    if(!isColVis(field))return;
     const visCols=COLUMNS.filter(c=>isColVis(c.key));
-    const body=document.getElementById("tableBody");
-    const trs=body.querySelectorAll("tr");
-    trs.forEach(tr=>{
-        const cb=tr.querySelector('input[type="checkbox"]');
-        if(cb&&cb.getAttribute("onchange")?.includes(uidValue)){
-            tr.innerHTML=`<td style="text-align:center;width:52px;"><input type="checkbox" ${selectedSet.has(uidValue)?"checked":""} onchange="toggleRowSel('${uidValue}',this.checked)" /></td>`+
-                visCols.map(c=>renderCell(row,c)).join("");
-            if(selectedSet.has(uidValue))tr.classList.add("selected");else tr.classList.remove("selected");
-        }
-    });
+    const tr=document.querySelector(`#tableBody tr[data-uid="${uidValue}"]`);
+    if(!tr)return;
+    tr.innerHTML=`<td style="text-align:center;width:52px;"><input type="checkbox" ${selectedSet.has(uidValue)?"checked":""} onchange="toggleRowSel('${uidValue}',this.checked)" /></td>`+
+        visCols.map(c=>renderCell(row,c)).join("");
+    if(selectedSet.has(uidValue))tr.classList.add("selected");else tr.classList.remove("selected");
 }
 
 /* ================================================================
@@ -988,15 +1040,12 @@ function openRowModal(mode="add",uidValue=null){
     document.getElementById("rowMask").style.display="flex";
     document.getElementById("rowModalTitle").textContent=mode==="edit"?"编辑资产":"新增资产";
     const row=uidValue?rows.find(r=>r.uid===uidValue):null;
-    ROW_FORM_FIELDS.forEach(([elId,key,,type])=>{
+    ROW_FORM_FIELDS.forEach(([elId,key,,type,opts])=>{
         const el=document.getElementById(elId);if(!el)return;
         if(type==="mainCat"){el.innerHTML=renderMainOpts(row?.assetMainCode||defMainCode());syncRowSubOpts()}
         else if(type==="subCat"){el.innerHTML=renderSubOpts(row?.assetMainCode||defMainCode(),row?.assetSubCode||defSubCode(row?.assetMainCode||defMainCode()))}
-        else if(type!=="select"&&type!=="mainCat"&&type!=="subCat")el.value=mode==="add"&&key==="id"?reserveNo():(row?.[key]??(key==="qty"?"1":(type==="select"?(opts?.[0]||""):"")));
-    });
-    // Set select values
-    ROW_FORM_FIELDS.forEach(([elId,key,,type])=>{
-        if(type==="select"){const el=document.getElementById(elId);if(el&&row)el.value=row[key]||""}
+        else if(type==="select"){el.value=row?row[key]||"":""}
+        else{el.value=mode==="add"&&key==="id"?reserveNo():(row?.[key]??(key==="qty"?"1":""))}
     });
 }
 function closeRowModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("rowMask").style.display="none";if(modalMode==="add")releaseNo(document.getElementById("rowId")?.value)}
@@ -1129,8 +1178,8 @@ function openLabelPrint(){
 function closeLabelPrint(){document.body.classList.remove("label-print-mode");document.getElementById("labelMask").style.display="none"}
 function printFilteredList(){
     const filtered=sorted(getFiltered()),w=window.open("","_blank");if(!w){alert("浏览器阻止了弹窗");return}
-    const rowsHtml=filtered.map(r=>`<tr>${["id","assetMainName","assetSubName","brand","model","spec","qty","sn","check","status","location","date","owner","note"].map(k=>`<td>${esc(r[k]||"")}</td>`).join("")}</tr>`).join("");
-    w.document.write(`<html><head><meta charset="utf-8"><title>资产清单打印</title><style>body{font-family:Microsoft YaHei,Arial;padding:20px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ccc;padding:6px;text-align:center}th{background:#0f172a;color:#fff}h2{margin:0 0 12px}</style></head><body><h2>TI部资产管理系统 - 资产清单</h2><div style="margin-bottom:10px;color:#666">打印时间：${new Date().toLocaleString()} | 共 ${filtered.length} 条</div><table><thead><tr>${["台账编号","资产大类","资产子类","品牌","型号","规格","数量","序列号","检测结果","当前状态","存放位置","入库日期","责任人","备注"].map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`);
+    const rowsHtml=filtered.map(r=>`<tr>${CSV_KEYS.map(k=>`<td>${esc(r[k]||"")}</td>`).join("")}</tr>`).join("");
+    w.document.write(`<html><head><meta charset="utf-8"><title>资产清单打印</title><style>body{font-family:Microsoft YaHei,Arial;padding:20px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ccc;padding:6px;text-align:center}th{background:#0f172a;color:#fff}h2{margin:0 0 12px}</style></head><body><h2>TI部资产管理系统 - 资产清单</h2><div style="margin-bottom:10px;color:#666">打印时间：${new Date().toLocaleString()} | 共 ${filtered.length} 条</div><table><thead><tr>${CSV_HEADERS.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`);
     w.document.close();w.focus();setTimeout(()=>w.print(),300);
 }
 
@@ -1146,7 +1195,7 @@ function downloadText(prefix,ext,content,mime,bom=false){
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
     addLog("导出",{id:"SYSTEM"},`下载：${fname}`);saveState();setSyncInfo(`已导出：${fname}`);
 }
-function rowsToCSV(list){const headers=["台账编号","资产大类","资产子类","品牌","型号","规格","数量","序列号","检测结果","当前状态","存放位置","入库日期","责任人","备注"];return headers.map(csvCell).join(",")+"\n"+list.map(r=>[r.id,r.assetMainName,r.assetSubName,r.brand,r.model,r.spec,r.qty,r.sn,r.check,r.status,r.location,r.date,r.owner,r.note].map(csvCell).join(",")).join("\n")}
+function rowsToCSV(list){return CSV_HEADERS.map(csvCell).join(",")+"\n"+list.map(r=>CSV_KEYS.map(k=>csvCell(r[k]||"")).join(",")).join("\n")}
 function exportAllJSON(){downloadText("ledger_all","json",JSON.stringify({rows:sorted(rows),trash,logs,snapshots},null,2),"application/json;charset=utf-8")}
 function exportAllCSV(){downloadText("ledger_all","csv",rowsToCSV(sorted(rows)),"text/csv;charset=utf-8",true)}
 function exportFilteredJSON(){downloadText("ledger_filtered","json",JSON.stringify({rows:sorted(getFiltered())},null,2),"application/json;charset=utf-8")}
@@ -1290,8 +1339,12 @@ document.getElementById("csvFile").addEventListener("change",async e=>{
 /* ================================================================
    INIT
    ================================================================ */
+const CSV_HEADERS=["台账编号","资产大类","资产子类","品牌","型号","规格","数量","序列号","检测结果","当前状态","存放位置","入库日期","责任人","备注"];
+const CSV_KEYS=["id","assetMainName","assetSubName","brand","model","spec","qty","sn","check","status","location","date","owner","note"];
+
 window.addEventListener("load",async()=>{
     initColVis();
+    initDark();
     loadState();
     syncMainFilter();syncSubFilter();syncStatusFilter();
     document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
