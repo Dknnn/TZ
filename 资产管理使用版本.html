@@ -37,6 +37,16 @@ body.dark input, body.dark select, body.dark textarea { color: #e2e8f0; }
 body.dark .pill-btn { background: #1e293b; border-color: #475569; }
 body.dark .pill-btn:hover { background: #334155; }
 body.dark .fold-head { background: #1a2332; }
+body.dark .form-grid input, body.dark .form-grid select, body.dark .form-grid textarea { background: #1e293b; color: #e2e8f0; border-color: #475569; }
+body.dark .form-grid input:focus, body.dark .form-grid select:focus, body.dark .form-grid textarea:focus { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(96,165,250,.15); }
+body.dark .cell:focus, body.dark .select-cell:focus { background: #253449; }
+body.dark .col-vis-chip { background: #334155; color: #94a3b8; }
+body.dark .col-vis-chip.on { background: #1e3a5f; color: #60a5fa; }
+body.dark .bar-track { background: #334155; }
+body.dark .bar-name { color: #cbd5e1; }
+body.dark .bar-value { color: #e2e8f0; }
+body.dark .folder-box { background: #1e293b; border-color: #334155; }
+body.dark .folder-box .value { color: #e2e8f0; }
 * { box-sizing: border-box }
 html, body { height: 100% }
 body {
@@ -834,8 +844,8 @@ function renderColVisPanel(){
     const panel=document.getElementById("colVisPanel");
     panel.innerHTML='<span class="col-vis-label">显示列：</span>'+COLUMNS.map(c=>`<span class="col-vis-chip ${isColVis(c.key)?'on':''}" onclick="toggleOneCol('${c.key}')" title="${c.label}">${isColVis(c.key)?'👁':'━'} ${c.label}</span>`).join("")+'<button class="btn-soft mini-btn" onclick="resetColVis()" style="margin-left:8px;">重置</button>';
 }
-function toggleOneCol(key){colVis[key]=!isColVis(key);lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));renderColVisPanel();renderTableHead();renderTable()}
-function resetColVis(){colVis={};initColVis();lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));renderColVisPanel();renderTableHead();renderTable()}
+function toggleOneCol(key){colVis[key]=!isColVis(key);lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));renderColVisPanel();renderTable()}
+function resetColVis(){colVis={};initColVis();lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));renderColVisPanel();renderTable()}
 
 /* ================================================================
    RENDER — Table
