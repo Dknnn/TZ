@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TI部资产管理系统 v2.0</title>
+<style>
+:root {
+    --bg: #f8fafc; --surface: #ffffff; --surface-2: #fbfdff;
+    --line: #e5e7eb; --line-strong: #d1d5db; --text: #111827;
+    --muted: #6b7280; --muted-2: #9ca3af; --primary: #1d4ed8; --primary-2: #2563eb;
+    --success: #16a34a; --warning: #d97706; --danger: #dc2626; --purple: #7c3aed;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 6px 18px rgba(15,23,42,.05);
+    --shadow-2: 0 12px 30px rgba(15,23,42,.08); --radius: 14px;
+}
+* { box-sizing: border-box }
+html, body { height: 100% }
+body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 1800px; margin: 14px auto; padding: 0 14px 34px; }
+
+/* ── Top Bar ── */
+.topbar {
+    background: #fff; color: var(--text); padding: 16px 18px; border-radius: 18px;
+    box-shadow: var(--shadow); display: flex; justify-content: space-between; gap: 16px;
+    flex-wrap: wrap; align-items: center; border: 1px solid var(--line);
+}
+.brand h1 { margin: 0; font-size: 22px; letter-spacing: -.02em; font-weight: 800; }
+.brand p { margin: 8px 0 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+
+/* ── Buttons ── */
+button {
+    border: none; cursor: pointer; border-radius: 10px; padding: 9px 12px;
+    font-size: 13px; font-weight: 700; transition: all .16s ease; white-space: nowrap;
+    letter-spacing: -.01em; user-select: none;
+}
+button:hover { transform: translateY(-1px) }
+button:active { transform: translateY(0) }
+.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(29,78,216,.16) }
+.btn-primary:hover { background: var(--primary-2) }
+.btn-secondary { background: #fff; color: var(--text); border: 1px solid var(--line); box-shadow: 0 1px 2px rgba(15,23,42,.03) }
+.btn-secondary:hover { background: #f9fafb; border-color: var(--line-strong) }
+.btn-danger { background: #fff; color: #b91c1c; border: 1px solid #fecaca }
+.btn-danger:hover { background: #fef2f2 }
+.btn-soft { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe }
+.btn-soft:hover { background: #dbeafe }
+.btn-green { background: #ecfdf3; color: #166534; border: 1px solid #bbf7d0 }
+.btn-green:hover { background: #dcfce7 }
+.btn-orange { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa }
+.btn-orange:hover { background: #ffedd5 }
+.btn-purple { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe }
+.btn-purple:hover { background: #ede9fe }
+.btn-cancel { background: #fff; color: #334155; border: 1px solid #cbd5e1 }
+.btn-cancel:hover { background: #f8fafc }
+.ledger-sort-btn { display: inline-flex; align-items: center; justify-content: center; padding: 9px 12px; min-width: 110px; }
+.ledger-sort-btn.sort-active { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; box-shadow: 0 4px 12px rgba(29,78,216,.10); }
+.ledger-sort-btn.sort-active:hover { background: #dbeafe }
+.mini-btn { padding: 6px 9px; border-radius: 8px; font-size: 11px; font-weight: 800 }
+
+/* ── Quick Filter Pills ── */
+.quick-filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.quick-filters .sep { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+.pill-btn {
+    padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    background: #fff; color: var(--muted); border: 1px solid var(--line); cursor: pointer;
+    transition: all .15s ease; white-space: nowrap;
+}
+.pill-btn:hover { background: #f1f5f9; border-color: var(--line-strong); }
+.pill-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.pill-btn .count { font-weight: 400; opacity: .7; margin-left: 2px; }
+
+/* ── Stats Grid ── */
+.grid { margin-top: 14px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; }
+.stat { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start }
+.stat .label { font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 700 }
+.stat .value { font-size: 26px; line-height: 1; font-weight: 900; color: var(--text); letter-spacing: -.04em; }
+.stat .tip { margin-top: 8px; font-size: 11px; color: var(--muted-2) }
+.badge { padding: 7px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; letter-spacing: .02em }
+.b-green { background:#dcfce7;color:#166534 } .b-orange { background:#ffedd5;color:#9a3412 }
+.b-blue { background:#dbeafe;color:#1d4ed8 } .b-gray { background:#e5e7eb;color:#334155 }
+.b-purple { background:#ede9fe;color:#6d28d9 } .b-red { background:#fee2e2;color:#b91c1b }
+
+/* ── Toolbar ── */
+.toolbar { margin-top: 12px; display: grid; grid-template-columns: 1.2fr .8fr .8fr .8fr .8fr .8fr; gap: 10px; align-items: stretch; }
+.field { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; box-shadow: var(--shadow); }
+.field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 700; }
+.field input, .field select, .field textarea { width: 100%; border: none; outline: none; background: transparent; font-size: 13px; font-family: inherit; color: var(--text); resize: vertical; }
+
+/* ── Panels ── */
+.panel, .fold-panel { margin-top: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+.panel-head { padding: 13px 16px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface-2); }
+.panel-head .title { font-size: 15px; font-weight: 800; letter-spacing: -.02em }
+.panel-head .meta { font-size: 12px; color: var(--muted); line-height: 1.5 }
+.table-head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-left: auto; }
+.table-head-actions button { padding: 8px 11px; font-size: 12px; box-shadow: 0 1px 2px rgba(15,23,42,.03); }
+
+/* ── Col Vis Panel ── */
+.col-vis-panel { padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.col-vis-panel .col-vis-label { font-size: 11px; color: var(--muted); font-weight: 700; margin-right: 4px; }
+.col-vis-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 10px; font-weight: 600; cursor: pointer; user-select: none; background: #e5e7eb; color: #6b7280; transition: all .15s; }
+.col-vis-chip.on { background: #dbeafe; color: #1d4ed8; }
+.col-vis-chip:hover { background: #d1d5db; }
+.col-vis-chip.on:hover { background: #bfdbfe; }
+
+/* ── Table ── */
+.table-wrap { overflow: auto; max-height: 560px }
+table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 1700px; }
+thead th { position: sticky; top: 0; z-index: 2; background: #f8fafc; color: #374151; font-size: 12px; text-align: center; padding: 11px 10px; white-space: nowrap; font-weight: 800; border-bottom: 1px solid var(--line); }
+thead th.sortable { cursor: pointer }
+thead th.sortable:hover { background: #eef2ff; }
+tbody td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 0; background: #fff; }
+tbody tr:nth-child(even) td { background: #fcfdff }
+tbody tr:hover td { background: #f8fbff }
+tbody tr.selected td { background: #eef6ff !important }
+.cell, .select-cell { width: 100%; height: 42px; border: none; outline: none; background: transparent; padding: 0 10px; font-size: 12px; font-family: inherit; color: var(--text); }
+.cell:focus, .select-cell:focus { background: #f8fbff }
+.cell.dirty { background: #fefce8 !important; }
+
+.row-actions { display: flex; justify-content: center; gap: 8px; padding: 6px 8px; flex-wrap: wrap; }
+
+/* ── Status Tags ── */
+.status-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+.s-in { background:#dcfce7;color:#166534 } .s-wait { background:#ffedd5;color:#9a3412 }
+.s-use { background:#dbeafe;color:#1d4ed8 } .s-scrap { background:#e5e7eb;color:#334155 }
+.s-sell { background:#ede9fe;color:#6d28d9 } .s-lost { background:#fee2e2;color:#b91c1c }
+
+.table-footer { padding: 11px 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 12px; background: #fff; }
+
+/* ── Charts ── */
+.charts { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.chart-fold { width: 100%; box-sizing: border-box; margin-top: 0 }
+.fold-head { list-style: none; cursor: pointer; user-select: none; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border-bottom: 1px solid var(--line); font-weight: 800; }
+.fold-head::-webkit-details-marker { display: none }
+.fold-tip { font-size: 12px; color: var(--muted); font-weight: 500 }
+.fold-body { padding: 12px 14px }
+.bar-chart { display: flex; flex-direction: column; gap: 10px }
+.bar-row { display: grid; grid-template-columns: 100px 1fr 48px; gap: 10px; align-items: center; font-size: 12px }
+.bar-name { color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.bar-track { height: 12px; border-radius: 999px; background: #eef2f7; overflow: hidden }
+.bar-fill { height: 100%; border-radius: 999px; transition: width .3s ease; }
+.bar-value { text-align: right; color: #475569; font-weight: 800 }
+
+.log-body, .trash-body { overflow: auto; max-height: 340px }
+.log-table, .trash-table { min-width: 1100px }
+
+/* ── Modals ── */
+.mask { position: fixed; inset: 0; background: rgba(15,23,42,.42); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 18px; overflow: auto; }
+.modal { background: #fff; width: min(1180px, 100%); border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,.16); padding: 16px; max-height: 90vh; overflow: auto; border: 1px solid rgba(15,23,42,.06); }
+.modal-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.form-grid label { display: block; font-size: 12px; color: #64748b; font-weight: 700; }
+.form-grid input, .form-grid select, .form-grid textarea { width: 100%; border: 1px solid #dbe3ee; border-radius: 12px; padding: 10px 12px; margin-top: 6px; font-size: 14px; outline: none; background: #fff; font-family: inherit; transition: border-color .15s ease, box-shadow .15s ease; }
+.form-grid input:hover, .form-grid select:hover, .form-grid textarea:hover { background: #fbfdff }
+.form-grid input:focus, .form-grid select:focus, .form-grid textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 3px rgba(29,78,216,.10); }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+/* ── Labels ── */
+.label-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 8px; }
+.label-card { border: 1px solid #dbe3ee; border-radius: 14px; padding: 12px; background: #fff; break-inside: avoid; }
+.label-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.label-id { font-size: 18px; font-weight: 800; color: #0f172a; letter-spacing: -.02em; }
+.label-meta { margin-top: 4px; color: #64748b; font-size: 12px; line-height: 1.5; }
+.label-body { margin-top: 10px }
+.label-foot { margin-top: 8px; font-size: 12px; color: #475569; line-height: 1.5; }
+
+body.label-print-mode .wrap>:not(#labelMask) { display: none !important }
+body.label-print-mode #labelMask { position: static; inset: auto; background: #fff; display: block !important; padding: 0; }
+body.label-print-mode .no-print { display: none !important }
+
+/* ── File Input ── */
+.file-input { display: none }
+
+/* ── Folder States ── */
+.folder-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 14px 16px 16px; }
+.folder-box { border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px; background: #fff; }
+.folder-box .name { font-size: 11px; color: #64748b; margin-bottom: 6px; font-weight: 700; }
+.folder-box .value { font-size: 13px; font-weight: 800; color: #0f172a; word-break: break-all; }
+.folder-box .state { margin-top: 8px; font-size: 11px }
+.folder-box .state-row { margin-top: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.folder-pick-btn { padding: 8px 10px; font-size: 11px; flex-shrink: 0 }
+.state-ok { color: #166534 } .state-no { color: #b91c1c } .state-warn { color: #92400e }
+.safe-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+.safe-pill.warn { background: #fef3c7; color: #92400e }
+.safe-pill.danger { background: #fee2e2; color: #991b1b }
+.safe-pill.ok { background: #dcfce7; color: #166534 }
+
+/* ── More Menu ── */
+.actions-compact { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; overflow: visible; }
+.more-menu { flex: 0 0 auto; position: relative; z-index: 1000; }
+.more-menu>summary { list-style: none; cursor: pointer; user-select: none; padding: 9px 12px; border-radius: 10px; background: #fff; color: var(--text); border: 1px solid var(--line); font-size: 13px; font-weight: 700; line-height: 1; white-space: nowrap; transition: .15s; }
+.more-menu>summary:hover { background: #f8fafc; transform: translateY(-1px) }
+.more-menu[open]>summary { border-color: var(--line-strong); box-shadow: 0 2px 8px rgba(15,23,42,.04); }
+.more-menu-list { position: absolute; right: 0; top: calc(100% + 8px); min-width: 180px; background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-2); padding: 8px; display: grid; gap: 6px; }
+.more-menu-list button { width: 100%; text-align: left; padding: 8px 10px; font-size: 12px; border-radius: 10px; background: #fff; color: var(--text); border: 1px solid var(--line); }
+.more-menu-list button:hover { background: #f8fafc; border-color: var(--line-strong); }
+
+/* ── Shortcut Hint ── */
+.shortcut-bar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; font-size: 11px; color: var(--muted-2); padding: 8px 16px; border-top: 1px solid var(--line); background: #fafbfc; }
+.shortcut-kbd { display: inline-block; padding: 1px 6px; border-radius: 4px; background: #e5e7eb; color: #374151; font-size: 10px; font-weight: 700; font-family: monospace; margin: 0 2px; }
+
+/* ── Responsive ── */
+@media (max-width:1200px) {
+    .grid { grid-template-columns: repeat(2, 1fr) }
+    .toolbar { grid-template-columns: 1fr 1fr }
+    .charts { grid-template-columns: 1fr }
+    .folder-grid { grid-template-columns: 1fr }
+}
+@media (max-width:768px) {
+    .wrap { margin: 8px auto; padding: 0 8px 18px }
+    .topbar { padding: 12px; gap: 10px }
+    .brand p { display: none }
+    .actions { width: 100%; padding-bottom: 2px }
+    .actions button { padding: 6px 9px; font-size: 11px }
+    .grid { grid-template-columns: repeat(2, 1fr); gap: 8px }
+    .card { padding: 10px }
+    .stat .value { font-size: 20px }
+    .toolbar { grid-template-columns: repeat(2, 1fr); gap: 8px }
+    .toolbar .field:first-child, .toolbar .field:nth-child(5), .toolbar .field:nth-child(6) { grid-column: 1 / -1 }
+    thead th { padding: 8px 4px; font-size: 11px }
+    .cell, .select-cell { height: 34px; font-size: 11px; padding: 0 6px }
+    .mini-btn { padding: 4px 6px; font-size: 10px }
+    .row-actions { flex-wrap: wrap; gap: 4px }
+    .table-wrap { max-height: 58vh }
+    .log-body, .trash-body { max-height: 220px }
+    .folder-grid { grid-template-columns: 1fr }
+    .quick-filters { gap: 4px }
+    .pill-btn { padding: 4px 8px; font-size: 10px; }
+}
+@media (max-width:700px) {
+    .grid { grid-template-columns: 1fr }
+    .toolbar { grid-template-columns: 1fr }
+    .form-grid { grid-template-columns: 1fr }
+    .label-grid { grid-template-columns: 1fr }
+    .brand h1 { font-size: 20px }
+    .table-head-actions { width: 100%; margin-left: 0; justify-content: flex-start }
+}
+@media (max-width:420px) {
+    .grid { grid-template-columns: 1fr 1fr }
+    .toolbar { grid-template-columns: 1fr }
+    .table-wrap { max-height: 54vh }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+    <!-- TOP BAR -->
+    <div class="topbar">
+        <div class="brand">
+            <h1>TI部资产管理系统</h1>
+            <p>v2.0 — 支持资产台账管理、状态跟踪、导入导出、标签打印 | 快捷键：<span class="shortcut-kbd">Ctrl+N</span> 新增 <span class="shortcut-kbd">Ctrl+S</span> 保存 <span class="shortcut-kbd">Ctrl+F</span> 搜索 <span class="shortcut-kbd">Del</span> 删除 <span class="shortcut-kbd">Esc</span> 取消</p>
+        </div>
+        <div class="actions actions-compact no-print">
+            <button class="btn-secondary" onclick="reauthorizeFolder()">重新授权</button>
+            <button class="btn-secondary" onclick="refreshFolderStates()">刷新状态</button>
+            <button class="btn-secondary" onclick="clearSavedFolders()">清除路径</button>
+            <button class="btn-secondary" onclick="saveNow()">立即保存</button>
+            <button class="btn-secondary" onclick="uploadToSyncFile()">上传微盘</button>
+            <details class="more-menu">
+                <summary>更多操作</summary>
+                <div class="more-menu-list">
+                    <button onclick="loadFromSyncFile()">从微盘重新加载</button>
+                    <button onclick="exportAllJSON()">导出全部 JSON</button>
+                    <button onclick="exportAllCSV()">导出全部 CSV</button>
+                    <button onclick="exportFilteredJSON()">导出筛选 JSON</button>
+                    <button onclick="exportFilteredCSV()">导出筛选 CSV</button>
+                    <button onclick="triggerImportJSON()">导入 JSON</button>
+                    <button onclick="triggerImportCSV()">导入 CSV</button>
+                    <button onclick="openLabelPrint()">打印标签</button>
+                    <button onclick="printFilteredList()">打印清单</button>
+                    <button class="btn-green" onclick="window.print()">打印页面</button>
+                    <button class="btn-danger" onclick="resetDemo()">恢复示例</button>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <input class="file-input" id="jsonFile" type="file" accept=".json,application/json" />
+    <input class="file-input" id="csvFile" type="file" accept=".csv,text/csv" />
+
+    <!-- STATS GRID -->
+    <div class="grid">
+        <div class="card"><div class="stat"><div><div class="label">总件数</div><div class="value" id="statTotalQty">0</div><div class="tip">按数量汇总</div></div><div class="badge b-blue">TOTAL</div></div></div>
+        <div class="card"><div class="stat"><div><div class="label">记录数</div><div class="value" id="statRecord">0</div><div class="tip">台账行数</div></div><div class="badge b-gray">REC</div></div></div>
+        <div class="card"><div class="stat"><div><div class="label">在库</div><div class="value" id="statIn">0</div><div class="tip">可直接使用</div></div><div class="badge b-green">IN</div></div></div>
+        <div class="card"><div class="stat"><div><div class="label">待检测</div><div class="value" id="statWait">0</div><div class="tip">待测试</div></div><div class="badge b-orange">CHK</div></div></div>
+        <div class="card"><div class="stat"><div><div class="label">已领用</div><div class="value" id="statUse">0</div><div class="tip">已出库</div></div><div class="badge b-blue">USED</div></div></div>
+        <div class="card"><div class="stat"><div><div class="label">重复编号</div><div class="value" id="statDupId">0</div><div class="tip">需检查</div></div><div class="badge b-red">ID</div></div></div>
+        <div class="card"><div class="stat"><div><div class="label">重复序列号</div><div class="value" id="statDupSn">0</div><div class="tip">需检查</div></div><div class="badge b-red">SN</div></div></div>
+        <div class="card"><div class="stat"><div><div class="label">日志数</div><div class="value" id="statLogs">0</div><div class="tip">操作留痕</div></div><div class="badge b-purple">LOG</div></div></div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar no-print">
+        <div class="field"><label>🔍 搜索 (Ctrl+F)</label><input id="searchInput" type="text" placeholder="搜索编号、品牌、型号、位置、备注..." oninput="onFilterChange()" /></div>
+        <div class="field"><label>状态筛选</label><select id="statusFilter" onchange="onFilterChange()"><option value="">全部状态</option></select></div>
+        <div class="field"><label>资产大类</label><select id="mainCategoryFilter" onchange="syncSubFilter();onFilterChange()"><option value="">全部大类</option></select></div>
+        <div class="field"><label>资产子类</label><select id="subCategoryFilter" onchange="onFilterChange()"><option value="">全部子类</option></select></div>
+        <div class="field"><label>当前操作人</label><input id="operatorInput" type="text" value="系统" oninput="saveAllDebounced();renderLogs();" /></div>
+        <div class="field"><label>同步状态</label><div class="small" id="syncInfo">未选择微盘同步文件夹</div></div>
+    </div>
+
+    <!-- QUICK FILTERS -->
+    <div class="quick-filters no-print" style="margin-top:10px;padding:0 4px;" id="quickFilters">
+        <span style="font-size:11px;color:var(--muted);font-weight:700;margin-right:2px;">快捷筛选：</span>
+        <button class="pill-btn active" data-filter="all" onclick="applyQuickFilter('all')">全部</button>
+        <button class="pill-btn" data-filter="in_stock" onclick="applyQuickFilter('in_stock')">在库</button>
+        <button class="pill-btn" data-filter="pending" onclick="applyQuickFilter('pending')">待检测</button>
+        <button class="pill-btn" data-filter="in_use" onclick="applyQuickFilter('in_use')">已领用</button>
+        <span class="sep"></span>
+        <button class="pill-btn" data-filter="my" onclick="applyQuickFilter('my')">👤 我的</button>
+        <button class="pill-btn" data-filter="month" onclick="applyQuickFilter('month')">📅 本月入库</button>
+        <span class="sep"></span>
+        <button class="pill-btn" data-filter="dup_id" onclick="applyQuickFilter('dup_id')">⚠ 重复编号</button>
+        <button class="pill-btn" data-filter="dup_sn" onclick="applyQuickFilter('dup_sn')">⚠ 重复序列号</button>
+    </div>
+
+    <!-- FOLDER STATE -->
+    <details class="fold-panel" open>
+        <summary class="fold-head"><span>文件夹状态</span><span class="fold-tip">点击折叠 / 展开</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div><div class="meta">这里可以直观看到微盘、备份、导出文件夹是否已选择。</div></div>
+                <div class="actions no-print"><span id="folderStateBadge" class="safe-pill warn">未就绪</span></div>
+            </div>
+            <div class="folder-grid">
+                <div class="folder-box"><div class="name">微盘同步文件夹</div><div id="syncFolderState" class="value">未选择</div><div class="state-row"><div id="syncFolderPermState" class="state state-no">无权限</div><button class="btn-soft folder-pick-btn no-print" onclick="chooseSyncFolder()">选择微盘</button></div></div>
+                <div class="folder-box"><div class="name">备份文件夹</div><div id="backupFolderState" class="value">未选择</div><div class="state-row"><div id="backupFolderPermState" class="state state-no">无权限</div><button class="btn-soft folder-pick-btn no-print" onclick="chooseBackupFolder()">选择备份</button></div></div>
+                <div class="folder-box"><div class="name">本地状态</div><div class="value" id="localStateValue">已加载</div><div class="state-row"><div class="state state-ok">本机自动保存</div><button class="btn-soft folder-pick-btn no-print" onclick="loadLocalDraft()">恢复草稿</button></div></div>
+            </div>
+        </div>
+    </details>
+
+    <!-- CHARTS -->
+    <div class="charts">
+        <details class="fold-panel chart-fold" open>
+            <summary class="fold-head"><span>状态分布</span><span class="fold-tip">点击折叠</span></summary>
+            <div class="fold-body"><div id="statusChart" class="bar-chart"></div></div>
+        </details>
+        <details class="fold-panel chart-fold" open>
+            <summary class="fold-head"><span>类别分布</span><span class="fold-tip">点击折叠</span></summary>
+            <div class="fold-body"><div id="typeChart" class="bar-chart"></div></div>
+        </details>
+    </div>
+
+    <!-- BULK BAR -->
+    <div id="bulkBar" class="panel no-print" style="display:none;">
+        <div class="panel-head">
+            <div><div class="title" id="bulkBarTitle">操作</div><div class="meta">已选中 <span id="selectedCount">0</span> 条</div></div>
+            <div class="actions" id="bulkBarActions"></div>
+        </div>
+    </div>
+
+    <!-- MAIN TABLE -->
+    <div class="panel">
+        <div class="panel-head">
+            <div><div class="title">TI部资产管理总表</div><div class="meta">支持多选批量操作、列显示自定义。修改后自动保存。</div></div>
+            <div class="table-head-actions no-print">
+                <button class="btn-primary" onclick="addRow()">新增一行</button>
+                <button class="btn-secondary ledger-sort-btn" id="ledgerSortBtn" onclick="toggleSortOrder()">
+                    <span id="ledgerSortText">编号：正序</span>
+                </button>
+                <button class="btn-soft" onclick="openBatchModal()">批量新增</button>
+                <button class="btn-soft" onclick="toggleColVis()" id="colVisBtn">⚙ 列设置</button>
+            </div>
+        </div>
+        <div class="col-vis-panel no-print" id="colVisPanel" style="display:none;"></div>
+        <div class="table-wrap"><table id="ledgerTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div>
+        <div class="table-footer">
+            <div>建议：删除先进回收站；涉及报废出售丢失等状态请保留日志。</div>
+            <div id="countInfo">当前显示 0 条 / 共 0 条</div>
+        </div>
+        <div class="shortcut-bar no-print" id="shortcutBar">
+            💡 快捷键：<span class="shortcut-kbd">Ctrl+F</span>搜索 <span class="shortcut-kbd">Ctrl+N</span>新增 <span class="shortcut-kbd">Ctrl+S</span>保存 <span class="shortcut-kbd">Del</span>删除选中 <span class="shortcut-kbd">Esc</span>取消/关闭 <span class="shortcut-kbd">Ctrl+Z</span>撤销
+        </div>
+    </div>
+
+    <!-- LOGS -->
+    <details class="fold-panel">
+        <summary class="fold-head"><span>操作日志</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="hint" style="margin-bottom:10px;">自动记录新增、删除、状态变更、字段修改。v2.0 支持字段级diff。</div>
+            <div class="log-body"><table class="log-table"><thead><tr><th style="width:170px;">时间</th><th style="width:90px;">操作类型</th><th style="width:110px;">台账编号</th><th style="width:90px;">操作人</th><th style="width:200px;">变更详情</th><th>说明</th></tr></thead><tbody id="logBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <!-- TRASH -->
+    <details class="fold-panel">
+        <summary class="fold-head"><span>回收站</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">删除记录会先进入回收站，可恢复或彻底删除。</div>
+                <div class="actions"><button class="btn-soft" onclick="openTrashModal()">回收站管理</button><button class="btn-danger" onclick="emptyTrash()">清空</button></div>
+            </div>
+            <div class="trash-body"><table class="trash-table"><thead><tr><th style="width:120px;">编号</th><th style="width:130px;">大类</th><th style="width:130px;">子类</th><th style="width:120px;">品牌</th><th style="width:160px;">型号</th><th style="width:110px;">状态</th><th style="width:180px;">删除时间</th><th style="width:180px;">操作</th></tr></thead><tbody id="trashBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <!-- SAFE HISTORY -->
+    <details class="fold-panel">
+        <summary class="fold-head"><span>安全留痕 / 历史版本</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">本机历史快照，可预览、回滚。最多保留10个版本。</div>
+                <div class="actions no-print"><button class="btn-soft" onclick="refreshSafeHistory()">刷新</button><button class="btn-soft" onclick="loadLocalDraft()">恢复草稿</button></div>
+            </div>
+            <div class="log-body"><table style="min-width:1100px;"><thead><tr><th style="width:100px;">版本</th><th style="width:180px;">更新时间</th><th style="width:110px;">更新人</th><th style="width:170px;">来源</th><th style="width:250px;">说明</th><th>操作</th></tr></thead><tbody id="safeHistoryBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <div class="footer-tip">© 2026 鑫玺生物科技 信息部 | 内部资产管理系统 v2.0</div>
+</div>
+
+<!-- ─── MODALS ─── -->
+<div id="rowMask" class="mask" onclick="closeRowModal(event)"><div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head"><h3 id="rowModalTitle">新增资产</h3><button class="btn-danger" onclick="closeRowModal()">关闭</button></div>
+    <div class="form-grid" id="rowFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeRowModal()">取消</button><button class="btn-primary" onclick="saveRowModal()">保存</button></div>
+</div></div>
+
+<div id="batchMask" class="mask" onclick="closeBatchModal(event)"><div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head"><h3>批量新增</h3><button class="btn-danger" onclick="closeBatchModal()">关闭</button></div>
+    <div class="form-grid" id="batchFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeBatchModal()">取消</button><button class="btn-primary" onclick="confirmBatchAdd()">确认批量新增</button></div>
+</div></div>
+
+<div id="bulkEditMask" class="mask" onclick="closeBulkEditModal(event)"><div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head"><h3>批量修改</h3><button class="btn-danger" onclick="closeBulkEditModal()">关闭</button></div>
+    <div class="hint" style="margin-bottom:12px;">留空或选择"保持不变"则不修改；只对已选中的记录生效。</div>
+    <div class="form-grid" id="bulkFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeBulkEditModal()">取消</button><button class="btn-primary" onclick="applyBulkEdit()">应用批量修改</button></div>
+</div></div>
+
+<div id="trashMask" class="mask" onclick="closeTrashModal(event)"><div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-head"><h3>回收站管理</h3><button class="btn-danger" onclick="closeTrashModal()">关闭</button></div>
+    <div class="table-wrap" style="max-height:60vh;"><table style="min-width:1200px;"><thead><tr><th style="width:120px;">编号</th><th style="width:130px;">大类</th><th style="width:130px;">子类</th><th style="width:120px;">品牌</th><th style="width:160px;">型号</th><th style="width:110px;">状态</th><th style="width:180px;">删除时间</th><th style="width:180px;">操作</th></tr></thead><tbody id="trashModalBody"></tbody></table></div>
+</div></div>
+
+<div id="labelMask" class="mask"><div class="modal">
+    <div class="modal-head no-print"><h3>条码标签打印</h3><div style="display:flex;gap:10px;"><button class="btn-secondary" onclick="window.print()">打印</button><button class="btn-danger" onclick="closeLabelPrint()">关闭</button></div></div>
+    <div class="small no-print" style="padding:0 4px 10px;">打印的是"筛选后的记录"。</div>
+    <div id="labelContainer" class="label-grid"></div>
+</div></div>
+
+<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+<script>
+/* ================================================================
+   CONFIG — 所有可配置数据集中在此
+   ================================================================ */
+
+const STORAGE_KEY = "ti_asset_db_rows_v4";
+const STORAGE_TRASH = "ti_asset_db_trash_v4";
+const STORAGE_LOGS = "ti_asset_db_logs_v4";
+const STORAGE_SNAPSHOTS = "ti_asset_db_snapshots_v4";
+const STORAGE_OPERATOR = "ti_asset_db_operator_v4";
+const STORAGE_EXPORT_SEQ = "ti_asset_db_exportseq_v4";
+const STORAGE_DRAFT = "ti_asset_db_draft_v4";
+const STORAGE_COL_VIS = "ti_asset_db_colvis_v4";
+const DB_NAME = "ti_asset_db_handles";
+const DB_STORE = "handles";
+const FILE_NAME = "ledger.json";
+const SAFE_BACKUP_PREFIX = "ledger_backup";
+const MAX_LOGS_KEEP = 180;
+const MAX_SNAPSHOTS_KEEP = 10;
+
+const CATEGORY_TREE = [
+    { code:"SYSTEM_UNIT", name:"整机设备", subs:[
+        {code:"DESKTOP",name:"台式机"},{code:"LAPTOP",name:"笔记本"},{code:"ALL_IN_ONE",name:"一体机"},
+        {code:"WORKSTATION",name:"工作站"},{code:"SERVER",name:"服务器"},{code:"OTHER",name:"其他"}
+    ]},
+    { code:"PARTS_UNIT", name:"计算部件", subs:[
+        {code:"MEMORY",name:"内存条"},{code:"HDD",name:"硬盘"},{code:"GPU",name:"显卡"},
+        {code:"MOTHERBOARD",name:"主板"},{code:"CPU",name:"CPU"},{code:"PSU",name:"电源"},
+        {code:"COOLER",name:"散热器"},{code:"CASE",name:"机箱"},{code:"CABLE",name:"线束"}
+    ]},
+    { code:"OFFICE_UNIT", name:"外设与办公", subs:[
+        {code:"MONITOR",name:"显示器"},{code:"MOUSE",name:"鼠标"},{code:"KEYBOARD",name:"键盘"},
+        {code:"PRINTER",name:"打印机"},{code:"PERIPHERAL_OTHER",name:"其他外设"}
+    ]},
+    { code:"NETWORK_UNIT", name:"网络与通讯", subs:[
+        {code:"SWITCH",name:"交换机"},{code:"ROUTER_AP",name:"路由/AP"},
+        {code:"OPTICS_CABLING",name:"光模块与配线"},{code:"NETWORK_OTHER",name:"其他网络设备"}
+    ]},
+    { code:"TOOLS_UNIT", name:"运维工具与仪表", subs:[
+        {code:"TESTER",name:"测试仪器"},{code:"WIRING_TOOL",name:"布线工具"},
+        {code:"CONSTRUCTION_TOOL",name:"施工工具"},{code:"TOOL_OTHER",name:"其他工具"}
+    ]},
+    { code:"MATERIAL_UNIT", name:"备品备件与耗材", subs:[
+        {code:"SPARE_PARTS",name:"电脑备件"},{code:"NETWORK_CONSUMABLE",name:"网络耗材"},
+        {code:"PRINT_CONSUMABLE",name:"打印耗材"},{code:"MATERIAL_OTHER",name:"其他耗材"}
+    ]},
+    { code:"OTHER_UNIT", name:"其他", subs:[{code:"OTHER",name:"其他"}] }
+];
+const CAT_MAP = Object.fromEntries(CATEGORY_TREE.map(x=>[x.code,x]));
+
+const STATUSES = [
+    {value:"在库", cls:"s-in", color:"#16a34a"},
+    {value:"待检测", cls:"s-wait", color:"#f59e0b"},
+    {value:"已领用", cls:"s-use", color:"#2563eb"},
+    {value:"已报废", cls:"s-scrap", color:"#64748b"},
+    {value:"已出售", cls:"s-sell", color:"#8b5cf6"},
+    {value:"已丢失", cls:"s-lost", color:"#ef4444"}
+];
+const STATUS_MAP = Object.fromEntries(STATUSES.map(s=>[s.value,s]));
+const STATUS_OPTIONS = STATUSES.map(s=>s.value);
+
+const COLUMNS = [
+    {key:"id", label:"台账编号", width:"120px", sortable:true, type:"text", defaultVis:true, required:true},
+    {key:"assetMainCode", label:"资产大类", width:"130px", sortable:false, type:"mainCat", defaultVis:true, required:true},
+    {key:"assetSubCode", label:"资产子类", width:"160px", sortable:false, type:"subCat", defaultVis:true, required:true},
+    {key:"brand", label:"品牌", width:"110px", sortable:false, type:"text", defaultVis:true, required:false},
+    {key:"model", label:"型号", width:"140px", sortable:false, type:"text", defaultVis:true, required:false},
+    {key:"spec", label:"规格", width:"130px", sortable:false, type:"text", defaultVis:true, required:false},
+    {key:"qty", label:"数量", width:"70px", sortable:false, type:"number", defaultVis:true, required:false},
+    {key:"sn", label:"序列号", width:"130px", sortable:false, type:"text", defaultVis:true, required:false},
+    {key:"check", label:"检测结果", width:"110px", sortable:false, type:"text", defaultVis:true, required:false},
+    {key:"status", label:"当前状态", width:"110px", sortable:false, type:"status", defaultVis:true, required:true},
+    {key:"location", label:"存放位置", width:"150px", sortable:false, type:"text", defaultVis:true, required:false},
+    {key:"date", label:"入库日期", width:"130px", sortable:false, type:"date", defaultVis:true, required:false},
+    {key:"owner", label:"责任人", width:"110px", sortable:false, type:"text", defaultVis:true, required:false},
+    {key:"note", label:"备注", width:"180px", sortable:false, type:"text", defaultVis:true, required:false}
+];
+
+// 行编辑弹窗字段映射  [elId前缀, fieldKey, label, type, options]
+const ROW_FORM_FIELDS = [
+    ["rowId","id","台账编号","text",null],
+    ["rowMainCategory","assetMainCode","资产大类","mainCat",null],
+    ["rowSubCategory","assetSubCode","资产子类","subCat",null],
+    ["rowBrand","brand","品牌","text",null],
+    ["rowModel","model","型号","text",null],
+    ["rowSpec","spec","规格","text",null],
+    ["rowQty","qty","数量","number",null],
+    ["rowSn","sn","序列号","text",null],
+    ["rowCheck","check","检测结果","select",["待测","正常","异常"]],
+    ["rowStatus","status","当前状态","select",STATUS_OPTIONS],
+    ["rowLocation","location","存放位置","text",null],
+    ["rowDate","date","入库日期","date",null],
+    ["rowOwner","owner","责任人","text",null],
+    ["rowNote","note","备注","textarea",null]
+];
+
+const DEMO = [
+    {uid:null, id:"PA-0001", source:"PC-001", assetMainCode:"SYSTEM_UNIT", assetMainName:"整机设备", assetSubCode:"DESKTOP", assetSubName:"台式机", brand:"联想", model:"ThinkCentre M720", spec:"i5/8G/256G", qty:"1", sn:"LCM720001", check:"正常", status:"在库", location:"整机库-A01", date:"2025-01-01", owner:"张三", note:"可整机使用", type:"", machineClass:""},
+    {uid:null, id:"PA-0002", source:"PC-001", assetMainCode:"OFFICE_UNIT", assetMainName:"外设与办公", assetSubCode:"MONITOR", assetSubName:"显示器", brand:"戴尔", model:"P2219H", spec:"21.5寸", qty:"1", sn:"MON001", check:"待测", status:"待检测", location:"显示器区-B02", date:"2025-01-01", owner:"张三", note:"接口检查", type:"", machineClass:""},
+    {uid:null, id:"PA-0003", source:"PC-002", assetMainCode:"PARTS_UNIT", assetMainName:"计算部件", assetSubCode:"CABLE", assetSubName:"线束", brand:"无", model:"SATA电源线", spec:"1条", qty:"3", sn:"无", check:"正常", status:"在库", location:"辅料区-C01", date:"2025-01-02", owner:"李四", note:"备用线束", type:"", machineClass:""}
+];
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let rows=[], trash=[], logs=[], snapshots=[];
+let selectedSet = new Set();
+let editingUid=null, modalMode="add";
+let saveTimer=null, saveStateTimer=null;
+let exportSeqMap={};
+let syncDirHandle=null, backupDirHandle=null;
+let safeRemoteVersion=0;
+let idReserveSet=new Set();
+let sortAsc=true;
+let colVis = {};            // {colKey: true/false}
+let quickFilter = "all";
+
+/* ================================================================
+   UTILITIES
+   ================================================================ */
+const uid = () => (window.crypto?.randomUUID?.() || "uid-"+Date.now()+"-"+Math.random().toString(16).slice(2));
+const clone = v => JSON.parse(JSON.stringify(v));
+const esc = str => (str??"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+const csvCell = v => `"${(v??"").toString().replace(/"/g,'""')}"`;
+const padNo = n => String(n).padStart(4,"0");
+const fmtNo = n => `PA-${padNo(n)}`;
+const parseNo = id => { const m=(id||"").toString().trim().match(/^PA-(\d{4,})$/i); return m?parseInt(m[1],10):NaN; };
+const sumQty = list => list.reduce((a,r)=>a+(parseFloat(r.qty)||0),0);
+const todayYmd = (d=new Date()) => { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0"); return `${y}${m}${day}`; };
+const statusCls = s => (STATUS_MAP[s]||{cls:"s-wait"}).cls;
+const getOp = () => (document.getElementById("operatorInput")?.value||"").trim()||"系统";
+
+function parseCSV(text) {
+    const rows=[]; let row=[],cur="",inQ=false; text=(text||"").replace(/^﻿/,"");
+    for(let i=0;i<text.length;i++){const ch=text[i],nxt=text[i+1];
+        if(inQ){if(ch==='"'&&nxt==='"'){cur+='"';i++}else if(ch==='"')inQ=false;else cur+=ch}
+        else{if(ch==='"')inQ=true;else if(ch===','){row.push(cur);cur=""}else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur=""}else if(ch!=='\r')cur+=ch}}
+    row.push(cur);rows.push(row);return rows.filter(r=>!(r.length===1&&r[0]===""));
+}
+function safeJson(t){if(typeof t!=="string")return null;const s=t.trim();if(!s)return null;return JSON.parse(s,(k,v)=>(k==="__proto__"||k==="constructor")?undefined:v);}
+function lsGet(k,d=""){try{return localStorage.getItem(k)??d}catch(e){return d}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+
+/* ================================================================
+   CATEGORY HELPERS
+   ================================================================ */
+function getCat(code){return CAT_MAP[code]||CATEGORY_TREE[0]}
+function getCatByName(name){return CATEGORY_TREE.find(x=>x.name===name)||null}
+function getSubs(mainCode){return getCat(mainCode).subs||[]}
+function getSub(mainCode,subCode){const l=getSubs(mainCode);return l.find(x=>x.code===subCode)||l[0]||{code:"",name:""}}
+function getSubByName(mainCode,name){return getSubs(mainCode).find(x=>x.name===name)||null}
+function defMainCode(){return CATEGORY_TREE[0].code}
+function defSubCode(mainCode){const l=getSubs(mainCode||defMainCode());return l[0]?.code||""}
+function renderMainOpts(selected=""){return ['<option value="">请选择大类</option>'].concat(CATEGORY_TREE.map(x=>`<option value="${x.code}" ${x.code===selected?"selected":""}>${x.name}</option>`)).join("")}
+function renderSubOpts(mainCode,selected=""){const l=getSubs(mainCode||defMainCode());return ['<option value="">请选择子类</option>'].concat(l.map(x=>`<option value="${x.code}" ${x.code===selected?"selected":""}>${x.name}</option>`)).join("")}
+function selOpts(opts,sel){return opts.map(o=>`<option value="${esc(o)}" ${o===sel?"selected":""}>${esc(o)}</option>`).join("")}
+
+/* ================================================================
+   DATA NORMALIZATION & MIGRATION
+   ================================================================ */
+function normRow(r){
+    return {
+        uid: r.uid||uid(), id:(r.id??"").toString().trim(), source:r.source??"",
+        assetMainCode:r.assetMainCode??"", assetMainName:r.assetMainName??"",
+        assetSubCode:r.assetSubCode??"", assetSubName:r.assetSubName??"",
+        brand:r.brand??"", model:r.model??"", spec:r.spec??"", qty:r.qty??"1",
+        sn:r.sn??"", check:r.check??"待测", status:r.status??"待检测",
+        location:r.location??"", date:r.date??"", owner:r.owner??"", note:r.note??"",
+        type:r.type??"", machineClass:r.machineClass??""
+    };
+}
+function normRows(arr){return (arr||[]).map(normRow)}
+function normTrash(arr){return (arr||[]).map(r=>({...normRow(r),deletedAt:r.deletedAt||new Date().toLocaleString()}))}
+function normLogs(arr){return (arr||[]).map(x=>({time:x.time||"",action:x.action||"",ledgerId:x.ledgerId||"",operator:x.operator||"系统",diff:x.diff||"",note:x.note||""}))}
+function normSnaps(arr){return Array.isArray(arr)?arr:[]}
+
+function legacyToMainSub(row){
+    const t=(row.type||"").trim(), mc=(row.machineClass||"").trim();
+    const mm={"台式机":"DESKTOP","笔记本":"LAPTOP","一体机":"ALL_IN_ONE","工作站":"WORKSTATION","服务器":"SERVER","其他":"OTHER"};
+    const pm={"内存条":"MEMORY","硬盘":"HDD","显卡":"GPU","主板":"MOTHERBOARD","CPU":"CPU","电源":"PSU","散热器":"COOLER","机箱":"CASE","线束":"CABLE"};
+    const om={"显示器":"MONITOR","鼠标":"MOUSE","键盘":"KEYBOARD","打印机":"PRINTER"};
+    const nm={"交换机":"SWITCH","路由器":"ROUTER_AP","路由/AP":"ROUTER_AP","AP":"ROUTER_AP","无线AP":"ROUTER_AP","光模块":"OPTICS_CABLING","配线":"OPTICS_CABLING","配线设备":"OPTICS_CABLING"};
+    const tm={"测试仪器":"TESTER","布线工具":"WIRING_TOOL","施工工具":"CONSTRUCTION_TOOL"};
+    if(t==="整机"){const s=getSub("SYSTEM_UNIT",mm[mc]||"OTHER");return{mainCode:"SYSTEM_UNIT",mainName:"整机设备",subCode:s.code,subName:s.name}}
+    if(pm[t]){const s=getSub("PARTS_UNIT",pm[t]);return{mainCode:"PARTS_UNIT",mainName:"计算部件",subCode:s.code,subName:s.name}}
+    if(om[t]){const s=getSub("OFFICE_UNIT",om[t]);return{mainCode:"OFFICE_UNIT",mainName:"外设与办公",subCode:s.code,subName:s.name}}
+    if(nm[t]){const s=getSub("NETWORK_UNIT",nm[t]);return{mainCode:"NETWORK_UNIT",mainName:"网络与通讯",subCode:s.code,subName:s.name}}
+    if(tm[t]){const s=getSub("TOOLS_UNIT",tm[t]);return{mainCode:"TOOLS_UNIT",mainName:"运维工具与仪表",subCode:s.code,subName:s.name}}
+    const s=getSub("OTHER_UNIT","OTHER");return{mainCode:"OTHER_UNIT",mainName:"其他",subCode:s.code,subName:s.name};
+}
+function migrateRow(r){
+    if(!r)return r;
+    if(r.assetMainName&&!r.assetMainCode){const m=getCatByName(r.assetMainName);if(m)r.assetMainCode=m.code}
+    if(r.assetMainCode&&r.assetSubName&&!r.assetSubCode){const s=getSubByName(r.assetMainCode,r.assetSubName);if(s)r.assetSubCode=s.code}
+    if(!r.assetMainCode||!r.assetSubCode){const m=legacyToMainSub(r);if(!r.assetMainCode)r.assetMainCode=m.mainCode;if(!r.assetMainName)r.assetMainName=m.mainName;if(!r.assetSubCode)r.assetSubCode=m.subCode;if(!r.assetSubName)r.assetSubName=m.subName}
+    if(!r.assetMainName)r.assetMainName=getCat(r.assetMainCode).name;
+    if(!r.assetSubName)r.assetSubName=getSub(r.assetMainCode,r.assetSubCode).name;
+    return r;
+}
+function migrateAll(){rows=rows.map(migrateRow);trash=trash.map(migrateRow)}
+function ensureUniqueIds(){const seen=new Set();rows.forEach(r=>{if(!r.id||seen.has(r.id)||isDupId(r.id,r.uid)){const o=r.id;r.id=nextNo();addLog("编号修正",r,`自动修正：${o||"空"} → ${r.id}`)}seen.add(r.id)})}
+function isDupId(id,exUid=null){const t=(id||"").trim();if(!t)return false;return rows.some(r=>r.id===t&&r.uid!==exUid)}
+function getDupIds(){const m=new Map();rows.forEach(r=>{const id=(r.id||"").trim();if(id)m.set(id,(m.get(id)||0)+1)});return [...m.entries()].filter(([,c])=>c>1).map(([id])=>id)}
+function getDupSnCount(){const m=new Map();rows.forEach(r=>{const sn=(r.sn||"").trim();if(!sn||sn==="无")return;m.set(sn,(m.get(sn)||0)+1)});return [...m.values()].filter(n=>n>1).reduce((a,b)=>a+(b-1),0)}
+
+/* ================================================================
+   LEDGER NO MANAGEMENT
+   ================================================================ */
+function existingNos(){return rows.map(r=>parseNo(r.id)).filter(n=>Number.isFinite(n)&&n>0)}
+function nextNo(){const used=new Set([...existingNos(),...[...idReserveSet].map(x=>parseNo(x)).filter(n=>Number.isFinite(n)&&n>0)]);let n=1;while(used.has(n))n++;return fmtNo(n)}
+function reserveNo(){const n=nextNo();idReserveSet.add(n);return n}
+function releaseNo(id){if(id)idReserveSet.delete(id)}
+
+/* ================================================================
+   SORT
+   ================================================================ */
+function sortComp(a,b){const na=parseNo(a.id),nb=parseNo(b.id);const aH=Number.isFinite(na),bH=Number.isFinite(nb);if(aH&&bH)return na-nb;if(aH)return-1;if(bH)return 1;return (a.id||"").localeCompare(b.id||"","zh-Hans-CN")}
+function sortRows(){rows.sort(sortComp)}
+function sorted(list){const arr=list.slice().sort(sortComp);return sortAsc?arr:arr.reverse()}
+
+/* ================================================================
+   STORAGE
+   ================================================================ */
+function loadState(){
+    try{
+        rows=normRows(safeJson(lsGet(STORAGE_KEY,"[]"))||[]);trash=normTrash(safeJson(lsGet(STORAGE_TRASH,"[]"))||[]);
+        logs=normLogs(safeJson(lsGet(STORAGE_LOGS,"[]"))||[]);snapshots=normSnaps(safeJson(lsGet(STORAGE_SNAPSHOTS,"[]"))||[]);
+        exportSeqMap=safeJson(lsGet(STORAGE_EXPORT_SEQ,"{}"))||{};
+        colVis=safeJson(lsGet(STORAGE_COL_VIS,"{}"))||{};
+        const op=lsGet(STORAGE_OPERATOR,"");if(op)document.getElementById("operatorInput").value=op;
+        if(!rows.length){rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid())}
+    }catch(e){rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];exportSeqMap={}}
+    migrateAll();ensureUniqueIds();sortRows();
+}
+function saveState(){
+    try{
+        const ok=lsSet(STORAGE_KEY,JSON.stringify(rows))&&lsSet(STORAGE_TRASH,JSON.stringify(trash))&&lsSet(STORAGE_LOGS,JSON.stringify(logs))&&lsSet(STORAGE_OPERATOR,getOp())&&lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap))&&lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));
+        lsSet(STORAGE_SNAPSHOTS,JSON.stringify(snapshots));
+        let draft={rows,trash,logs:logs.slice(0,50),snapshots:snapshots.slice(0,3),safeRemoteVersion,updatedAt:new Date().toISOString(),updatedBy:getOp()};
+        lsSet(STORAGE_DRAFT,JSON.stringify(draft));
+        return ok;
+    }catch(e){setSyncInfo("保存失败："+e.message);return false}
+}
+function setSyncInfo(t){const el=document.getElementById("syncInfo");if(el)el.textContent=t||"";clearTimeout(saveStateTimer);saveStateTimer=setTimeout(()=>refreshFolderStates(),2500)}
+
+/* ================================================================
+   LOGS (v2: field-level diff)
+   ================================================================ */
+function addLog(action,row,note="",diffObj=null){
+    let diffStr="";
+    if(diffObj&&typeof diffObj==="object"){
+        const parts=[];
+        for(const[k,v] of Object.entries(diffObj)){
+            const col=COLUMNS.find(c=>c.key===k);
+            const label=col?col.label:k;
+            parts.push(`${label}：${v.old??"空"} → ${v.new??"空"}`);
+        }
+        diffStr=parts.join("；");
+    }
+    logs.unshift({time:new Date().toLocaleString(),action,ledgerId:row?.id||"",operator:getOp(),diff:diffStr,note});
+    if(logs.length>MAX_LOGS_KEEP)logs=logs.slice(0,MAX_LOGS_KEEP);
+}
+function pushSnapshot(src="自动保存",nt="自动保存"){
+    snapshots.unshift({version:(snapshots[0]?.version||0)+1,time:new Date().toLocaleString(),updatedBy:getOp(),source:src,note:nt,rows:clone(rows),trash:clone(trash),logs:clone(logs)});
+    if(snapshots.length>MAX_SNAPSHOTS_KEEP)snapshots=snapshots.slice(0,MAX_SNAPSHOTS_KEEP);
+}
+
+/* ================================================================
+   FILTERING
+   ================================================================ */
+function getFiltered(){
+    const kw=document.getElementById("searchInput").value.trim().toLowerCase();
+    const sf=document.getElementById("statusFilter").value;
+    const mf=document.getElementById("mainCategoryFilter").value;
+    const subf=document.getElementById("subCategoryFilter").value;
+    let result=rows.filter(r=>{
+        if(kw&&![r.id,r.source,r.assetMainName,r.assetSubName,r.brand,r.model,r.spec,r.sn,r.check,r.status,r.location,r.date,r.owner,r.note].some(v=>(v||"").toString().toLowerCase().includes(kw)))return false;
+        if(sf&&r.status!==sf)return false;
+        if(mf&&r.assetMainCode!==mf)return false;
+        if(subf&&r.assetSubCode!==subf)return false;
+        return true;
+    });
+    // quick filter
+    if(quickFilter==="in_stock") result=result.filter(r=>r.status==="在库");
+    else if(quickFilter==="pending") result=result.filter(r=>r.status==="待检测");
+    else if(quickFilter==="in_use") result=result.filter(r=>r.status==="已领用");
+    else if(quickFilter==="my") result=result.filter(r=>r.owner===getOp());
+    else if(quickFilter==="month"){const m=todayYmd().slice(0,6);result=result.filter(r=>(r.date||"").replace(/-/g,"").startsWith(m))}
+    else if(quickFilter==="dup_id"){const ids=new Set(getDupIds());result=result.filter(r=>ids.has(r.id))}
+    else if(quickFilter==="dup_sn"){const m=new Map();rows.forEach(r=>{const sn=(r.sn||"").trim();if(!sn||sn==="无")return;m.set(sn,(m.get(sn)||0)+1)});const dupSns=new Set([...m.entries()].filter(([,c])=>c>1).map(([sn])=>sn));result=result.filter(r=>dupSns.has((r.sn||"").trim()))}
+    return result;
+}
+function applyQuickFilter(filter){
+    quickFilter=filter;
+    document.querySelectorAll(".pill-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter===filter));
+    if(filter==="all"){document.getElementById("statusFilter").value="";document.getElementById("searchInput").value=""}
+    else if(filter==="in_stock")document.getElementById("statusFilter").value="在库";
+    else if(filter==="pending")document.getElementById("statusFilter").value="待检测";
+    else if(filter==="in_use")document.getElementById("statusFilter").value="已领用";
+    else{document.getElementById("statusFilter").value=""}
+    renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts();
+}
+function onFilterChange(){quickFilter="all";document.querySelectorAll(".pill-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter==="all"));renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts()}
+function updatePillCounts(){
+    const inStock=rows.filter(r=>r.status==="在库").length;
+    const pending=rows.filter(r=>r.status==="待检测").length;
+    const inUse=rows.filter(r=>r.status==="已领用").length;
+    const my=rows.filter(r=>r.owner===getOp()).length;
+    const dupId=getDupIds().length;
+    const dupSn=getDupSnCount();
+    const pills=document.querySelectorAll(".pill-btn");
+    const counts={in_stock:inStock,pending:pending,in_use:inUse,my:my,dup_id:dupId,dup_sn:dupSn};
+    pills.forEach(b=>{if(counts[b.dataset.filter]!==undefined)b.innerHTML=b.innerHTML.replace(/<span class="count">.*<\/span>/,"")+` <span class="count">(${counts[b.dataset.filter]})</span>`});
+}
+
+/* ================================================================
+   COLUMN VISIBILITY
+   ================================================================ */
+function initColVis(){
+    COLUMNS.forEach(c=>{if(!(c.key in colVis))colVis[c.key]=c.defaultVis});
+}
+function isColVis(key){return colVis[key]!==false}
+function toggleColVis(){
+    const panel=document.getElementById("colVisPanel");
+    if(panel.style.display==="none"){renderColVisPanel();panel.style.display="flex"}else{panel.style.display="none"}
+}
+function renderColVisPanel(){
+    const panel=document.getElementById("colVisPanel");
+    panel.innerHTML='<span class="col-vis-label">显示列：</span>'+COLUMNS.map(c=>`<span class="col-vis-chip ${isColVis(c.key)?'on':''}" onclick="toggleOneCol('${c.key}')" title="${c.label}">${isColVis(c.key)?'👁':'━'} ${c.label}</span>`).join("")+'<button class="btn-soft mini-btn" onclick="resetColVis()" style="margin-left:8px;">重置</button>';
+}
+function toggleOneCol(key){colVis[key]=!isColVis(key);lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));renderColVisPanel();renderTableHead();renderTable()}
+function resetColVis(){colVis={};initColVis();lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));renderColVisPanel();renderTableHead();renderTable()}
+
+/* ================================================================
+   RENDER — Table
+   ================================================================ */
+function renderTableHead(){
+    const thead=document.getElementById("tableHead");
+    const visCols=COLUMNS.filter(c=>isColVis(c.key));
+    thead.innerHTML=`<tr><th style="width:52px;"><input type="checkbox" id="selectAllBox" onclick="toggleSelectAll(this.checked)" /></th>`+
+        visCols.map(c=>`<th class="${c.sortable?'sortable':''}" style="width:${c.width}" ${c.sortable?'onclick="toggleSortOrder()"':''}>${c.label}</th>`).join("")+`</tr>`;
+}
+function renderTable(){
+    renderTableHead();
+    const body=document.getElementById("tableBody");body.innerHTML="";
+    const filtered=sorted(getFiltered());
+    const visCols=COLUMNS.filter(c=>isColVis(c.key));
+    document.getElementById("countInfo").textContent=`当前显示 ${filtered.length} 条 / 共 ${rows.length} 条`;
+    const selAll=document.getElementById("selectAllBox");if(selAll)selAll.checked=filtered.length>0&&filtered.every(r=>selectedSet.has(r.uid));
+    selectionBar();
+
+    filtered.forEach(r=>{
+        const tr=document.createElement("tr");if(selectedSet.has(r.uid))tr.classList.add("selected");
+        tr.innerHTML=`<td style="text-align:center;width:52px;"><input type="checkbox" ${selectedSet.has(r.uid)?"checked":""} onchange="toggleRowSel('${r.uid}',this.checked)" /></td>`+
+            visCols.map(c=>renderCell(r,c)).join("");
+        body.appendChild(tr);
+    });
+    if(!filtered.length)body.innerHTML=`<tr><td colspan="${visCols.length+1}" style="padding:16px;text-align:center;color:#64748b;">没有匹配的记录</td></tr>`;
+    const dupIds=getDupIds();if(dupIds.length)setSyncInfo(`⚠ 重复编号：${dupIds.join(", ")}`);
+    updateSortBtn();updatePillCounts();
+}
+function renderCell(r,col){
+    const v=r[col.key]??"";
+    switch(col.type){
+    case"mainCat": return `<td><select class="select-cell" onchange="updateMainCat('${r.uid}',this.value)">${renderMainOpts(r.assetMainCode)}</select></td>`;
+    case"subCat": return `<td><select class="select-cell" onchange="updateSubCat('${r.uid}',this.value)">${renderSubOpts(r.assetMainCode,r.assetSubCode)}</select></td>`;
+    case"status": return `<td><div style="padding:6px 8px;display:flex;flex-direction:column;gap:6px;"><span class="status-tag ${statusCls(r.status)}">${esc(r.status||"待检测")}</span><select class="select-cell" onchange="updateField('${r.uid}','${col.key}',this.value)">${selOpts(STATUS_OPTIONS,r.status)}</select></div></td>`;
+    case"number": return `<td><input class="cell" type="number" min="1" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
+    case"date": return `<td><input class="cell" type="date" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
+    default: return `<td><input class="cell" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
+    }
+}
+function updateCellInDOM(uidValue,field,value){
+    const row=rows.find(r=>r.uid===uidValue);if(!row)return;
+    const col=COLUMNS.find(c=>c.key===field);if(!col||!isColVis(field))return;
+    // Re-render this row in the table
+    const visCols=COLUMNS.filter(c=>isColVis(c.key));
+    const body=document.getElementById("tableBody");
+    const trs=body.querySelectorAll("tr");
+    trs.forEach(tr=>{
+        const cb=tr.querySelector('input[type="checkbox"]');
+        if(cb&&cb.getAttribute("onchange")?.includes(uidValue)){
+            tr.innerHTML=`<td style="text-align:center;width:52px;"><input type="checkbox" ${selectedSet.has(uidValue)?"checked":""} onchange="toggleRowSel('${uidValue}',this.checked)" /></td>`+
+                visCols.map(c=>renderCell(row,c)).join("");
+            if(selectedSet.has(uidValue))tr.classList.add("selected");else tr.classList.remove("selected");
+        }
+    });
+}
+
+/* ================================================================
+   RENDER — Stats, Charts, Logs, Trash, History
+   ================================================================ */
+function renderStats(){
+    document.getElementById("statTotalQty").textContent=sumQty(rows);
+    document.getElementById("statRecord").textContent=rows.length;
+    document.getElementById("statIn").textContent=sumQty(rows.filter(r=>r.status==="在库"));
+    document.getElementById("statWait").textContent=sumQty(rows.filter(r=>r.status==="待检测"));
+    document.getElementById("statUse").textContent=sumQty(rows.filter(r=>r.status==="已领用"));
+    document.getElementById("statDupId").textContent=getDupIds().length;
+    document.getElementById("statDupSn").textContent=getDupSnCount();
+    document.getElementById("statLogs").textContent=logs.length;
+}
+function renderCharts(){
+    renderBarChart(document.getElementById("statusChart"),STATUSES.map(s=>({name:s.value,value:sumQty(rows.filter(r=>r.status===s.value)),color:s.color})));
+    renderBarChart(document.getElementById("typeChart"),CATEGORY_TREE.map((x,i)=>({name:x.name,value:sumQty(rows.filter(r=>r.assetMainCode===x.code)),color:["#2563eb","#16a34a","#8b5cf6","#f59e0b","#ef4444","#14b8a6","#64748b"][i%7]})));
+}
+function renderBarChart(el,data){
+    const max=Math.max(...data.map(d=>d.value),1);
+    el.innerHTML=data.map(d=>`<div class="bar-row"><div class="bar-name">${esc(d.name)}</div><div class="bar-track"><div class="bar-fill" style="width:${(d.value/max*100).toFixed(2)}%;background:${d.color};"></div></div><div class="bar-value">${d.value}</div></div>`).join("");
+}
+function renderLogs(){
+    const body=document.getElementById("logBody");body.innerHTML="";
+    logs.slice(0,120).forEach(item=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML=`<td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(item.time)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;font-weight:700;">${esc(item.action)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(item.ledgerId)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(item.operator)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;font-size:11px;color:#64748b;">${esc(item.diff||"")}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(item.note)}</td>`;
+        body.appendChild(tr);
+    });
+    if(!logs.length)body.innerHTML=`<tr><td colspan="6" style="padding:16px;text-align:center;color:#6b7280;">暂无日志</td></tr>`;
+}
+function renderTrash(){
+    const renderOne=(bodyEl,showActions)=>{
+        bodyEl.innerHTML="";
+        if(!trash.length){bodyEl.innerHTML=`<tr><td colspan="8" style="padding:16px;text-align:center;color:#6b7280;">回收站为空</td></tr>`;return}
+        trash.forEach(r=>{
+            const tr=document.createElement("tr");
+            tr.innerHTML=`<td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.id)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.assetMainName)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.assetSubName)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.brand)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.model)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.status)}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.deletedAt||"")}</td>`+(showActions?`<td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;"><div class="row-actions"><button class="mini-btn btn-soft" onclick="restoreTrash('${r.uid}')">恢复</button><button class="mini-btn btn-danger" onclick="permDelete('${r.uid}')">彻底删除</button></div></td>`:"")+``;
+            bodyEl.appendChild(tr);
+        });
+    };
+    renderOne(document.getElementById("trashBody"),true);
+    renderOne(document.getElementById("trashModalBody"),true);
+}
+function renderSafeHistory(){
+    const body=document.getElementById("safeHistoryBody");body.innerHTML="";
+    if(!snapshots.length){body.innerHTML=`<tr><td colspan="6" style="padding:16px;text-align:center;color:#6b7280;">暂无历史快照</td></tr>`;return}
+    snapshots.forEach((item,idx)=>{const tr=document.createElement("tr");tr.innerHTML=`<td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">v${item.version||idx+1}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(item.time||"")}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(item.updatedBy||"")}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(item.source||"")}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(item.note||"")}</td><td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;"><button class="mini-btn btn-orange" onclick="rollbackSnapshot(${idx})">回滚</button></td>`;body.appendChild(tr)});
+}
+function updateCountInfo(){
+    const filtered=getFiltered();
+    document.getElementById("countInfo").textContent=`当前显示 ${filtered.length} 条 / 共 ${rows.length} 条`;
+}
+function updateSortBtn(){
+    const btn=document.getElementById("ledgerSortBtn"),txt=document.getElementById("ledgerSortText");
+    if(!btn)return;btn.classList.add("sort-active");btn.classList.toggle("sort-desc",!sortAsc);
+    if(txt)txt.textContent=sortAsc?"编号：正序":"编号：倒序";
+}
+function selectionBar(){
+    const bar=document.getElementById("bulkBar"),title=document.getElementById("bulkBarTitle"),act=document.getElementById("bulkBarActions");
+    const cnt=selectedSet.size;if(!cnt){bar.style.display="none";return}
+    bar.style.display="block";document.getElementById("selectedCount").textContent=cnt;
+    const uid0=[...selectedSet][0];
+    if(cnt===1){title.textContent="操作";act.innerHTML=`<button class="btn-purple" onclick="openRowModal('edit','${uid0}')">编辑</button><button class="btn-soft" onclick="dupRow('${uid0}')">复制</button><button class="btn-orange" onclick="trashRow('${uid0}')">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
+    else{title.textContent="多选批量操作";act.innerHTML=`<button class="btn-purple" onclick="openBulkEditModal()">批量修改</button><button class="btn-orange" onclick="moveSelToTrash()">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
+}
+
+/* ================================================================
+   ACTIONS — CRUD
+   ================================================================ */
+function updateField(uidValue,field,value){
+    const row=rows.find(r=>r.uid===uidValue);if(!row)return;
+    const oldVal=row[field];const newVal=(value??"").toString().trim();
+    if(oldVal===newVal)return;
+    if(field==="id"){
+        if(!/^PA-\d+$/.test(newVal)){alert("编号格式不正确，须为 PA-0001");renderTable();return}
+        if(isDupId(newVal,uidValue)){alert(`编号 ${newVal} 已存在`);renderTable();return}
+        row[field]=newVal;releaseNo(oldVal);
+        addLog("编号修改",row,"",{id:{old:oldVal,new:newVal}});
+        sortRows();saveState();renderTable();renderStats();renderCharts();updateCountInfo();return;
+    }
+    row[field]=value;
+    const diff={};diff[field]={old:oldVal??"",new:value??""};
+    addLog(field==="status"?"状态变更":"修改",row,"",diff);
+    saveState();
+    // Incremental update
+    updateCellInDOM(uidValue,field,value);
+    renderStats();renderCharts();updateCountInfo();
+    saveAllDebounced();
+}
+function updateMainCat(uidValue,mainCode){
+    const row=rows.find(r=>r.uid===uidValue);if(!row)return;
+    const main=getCat(mainCode||defMainCode()),sub=getSub(main.code,defSubCode(main.code));
+    const diff={assetMainCode:{old:row.assetMainCode,new:main.code},assetMainName:{old:row.assetMainName,new:main.name},assetSubCode:{old:row.assetSubCode,new:sub.code},assetSubName:{old:row.assetSubName,new:sub.name}};
+    Object.assign(row,{assetMainCode:main.code,assetMainName:main.name,assetSubCode:sub.code,assetSubName:sub.name});
+    addLog("修改",row,"",diff);saveState();renderTable();renderStats();renderCharts();updateCountInfo();
+}
+function updateSubCat(uidValue,subCode){
+    const row=rows.find(r=>r.uid===uidValue);if(!row)return;
+    const main=getCat(row.assetMainCode||defMainCode()),sub=getSub(main.code,subCode||defSubCode(main.code));
+    const diff={assetSubCode:{old:row.assetSubCode,new:sub.code},assetSubName:{old:row.assetSubName,new:sub.name}};
+    Object.assign(row,{assetSubCode:sub.code,assetSubName:sub.name});
+    addLog("修改",row,"",diff);saveState();renderTable();renderStats();renderCharts();updateCountInfo();
+}
+
+function toggleRowSel(uidValue,checked){if(checked)selectedSet.add(uidValue);else selectedSet.delete(uidValue);renderTable();renderStats();selectionBar()}
+function toggleSelectAll(checked){getFiltered().forEach(r=>{if(checked)selectedSet.add(r.uid);else selectedSet.delete(r.uid)});renderTable();renderStats();selectionBar()}
+function clearSel(){selectedSet.clear();renderTable();renderStats();selectionBar()}
+
+function dupRow(uidValue){
+    const row=rows.find(r=>r.uid===uidValue);if(!row)return;
+    const nr=clone(row);nr.uid=uid();nr.id=reserveNo();rows.push(nr);
+    sortRows();addLog("复制",nr,`由 ${row.id} 复制`);selectedSet.clear();selectedSet.add(nr.uid);
+    saveState();renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();
+}
+function trashRow(uidValue){
+    const idx=rows.findIndex(r=>r.uid===uidValue);if(idx<0)return;
+    const row=rows[idx];if(!confirm(`确定将 ${row.id} 移入回收站吗？`))return;
+    trash.unshift({...clone(row),deletedAt:new Date().toLocaleString()});rows.splice(idx,1);releaseNo(row.id);
+    selectedSet.delete(uidValue);addLog("删除",row,"移入回收站");saveState();renderAll();
+}
+function moveSelToTrash(){
+    const ids=[...selectedSet];if(!ids.length)return;
+    if(!confirm(`确定将选中的 ${ids.length} 条移入回收站吗？`))return;
+    ids.forEach(uid=>{const idx=rows.findIndex(r=>r.uid===uid);if(idx>=0){const row=rows[idx];trash.unshift({...clone(row),deletedAt:new Date().toLocaleString()});releaseNo(row.id);rows.splice(idx,1);addLog("删除",row,"移入回收站")}});
+    selectedSet.clear();saveState();renderAll();
+}
+
+/* ================================================================
+   MODALS — Row Add/Edit
+   ================================================================ */
+function buildRowFormGrid(){
+    return ROW_FORM_FIELDS.map(([elId,key,label,type,opts])=>{
+        if(type==="mainCat") return `<label>${label} <select id="${elId}" onchange="syncRowSubOpts()"></select></label>`;
+        if(type==="subCat") return `<label>${label} <select id="${elId}"></select></label>`;
+        if(type==="select") return `<label>${label} <select id="${elId}">${selOpts(opts,opts[0])}</select></label>`;
+        if(type==="textarea") return `<label style="grid-column:1 / -1;">${label} <textarea id="${elId}" rows="3"></textarea></label>`;
+        if(type==="number") return `<label>${label} <input id="${elId}" type="number" min="1" value="1" /></label>`;
+        if(type==="date") return `<label>${label} <input id="${elId}" type="date" /></label>`;
+        return `<label>${label} <input id="${elId}" type="text" /></label>`;
+    }).join("");
+}
+function syncRowSubOpts(){
+    const mc=document.getElementById("rowMainCategory")?.value||defMainCode();
+    const el=document.getElementById("rowSubCategory");if(!el)return;
+    const cur=el.value||"";el.innerHTML=renderSubOpts(mc,cur);
+    if(cur&&!getSubs(mc).some(x=>x.code===cur))el.value="";
+}
+function openRowModal(mode="add",uidValue=null){
+    modalMode=mode;editingUid=uidValue;
+    document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
+    document.getElementById("rowMask").style.display="flex";
+    document.getElementById("rowModalTitle").textContent=mode==="edit"?"编辑资产":"新增资产";
+    const row=uidValue?rows.find(r=>r.uid===uidValue):null;
+    ROW_FORM_FIELDS.forEach(([elId,key,,type])=>{
+        const el=document.getElementById(elId);if(!el)return;
+        if(type==="mainCat"){el.innerHTML=renderMainOpts(row?.assetMainCode||defMainCode());syncRowSubOpts()}
+        else if(type==="subCat"){el.innerHTML=renderSubOpts(row?.assetMainCode||defMainCode(),row?.assetSubCode||defSubCode(row?.assetMainCode||defMainCode()))}
+        else if(type!=="select"&&type!=="mainCat"&&type!=="subCat")el.value=mode==="add"&&key==="id"?reserveNo():(row?.[key]??(key==="qty"?"1":(type==="select"?(opts?.[0]||""):"")));
+    });
+    // Set select values
+    ROW_FORM_FIELDS.forEach(([elId,key,,type])=>{
+        if(type==="select"){const el=document.getElementById(elId);if(el&&row)el.value=row[key]||""}
+    });
+}
+function closeRowModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("rowMask").style.display="none";if(modalMode==="add")releaseNo(document.getElementById("rowId")?.value)}
+function saveRowModal(){
+    let committed=false;
+    try{
+        const data={};ROW_FORM_FIELDS.forEach(([elId,key])=>{const el=document.getElementById(elId);data[key]=el?el.value.trim():""});
+        if(!/^PA-\d+$/.test(data.id)){alert("编号格式不正确，须为 PA-0001");return}
+        if(modalMode==="add"){
+            if(isDupId(data.id)){data.id=nextNo();document.getElementById("rowId").value=data.id}
+            const main=getCat(data.assetMainCode||defMainCode()),sub=getSub(main.code,data.assetSubCode||defSubCode(main.code));
+            const row={uid:uid(),...data,assetMainName:main.name,assetSubName:sub.name,source:"",type:"",machineClass:""};
+            rows.push(row);sortRows();addLog("新增",row);selectedSet.clear();selectedSet.add(row.uid);committed=true;
+        }else{
+            const row=rows.find(r=>r.uid===editingUid);if(!row)return;
+            if(isDupId(data.id,row.uid)){alert(`编号 ${data.id} 已存在`);return}
+            const main=getCat(data.assetMainCode||defMainCode()),sub=getSub(main.code,data.assetSubCode||defSubCode(main.code));
+            Object.assign(row,data,{assetMainName:main.name,assetSubName:sub.name});
+            addLog("修改",row);sortRows();committed=true;
+        }
+        saveState();
+    }catch(e){alert("保存失败："+e.message);return}
+    finally{if(committed){closeRowModal();renderAll()}}
+}
+function addRow(){openRowModal("add")}
+
+/* ================================================================
+   MODALS — Batch Add
+   ================================================================ */
+function openBatchModal(){
+    document.getElementById("batchFormGrid").innerHTML=`
+        <label>新增数量 <input id="batchCount" type="number" min="1" value="5" /></label>
+        <label>资产大类 <select id="batchMainCategory" onchange="syncBatchSub()">${renderMainOpts(defMainCode())}</select></label>
+        <label>资产子类 <select id="batchSubCategory"></select></label>
+        <label>品牌 <input id="batchBrand" type="text" /></label>
+        <label>型号 <input id="batchModel" type="text" /></label>
+        <label>规格 <input id="batchSpec" type="text" /></label>
+        <label>每条数量 <input id="batchQty" type="number" min="1" value="1" /></label>
+        <label>当前状态 <select id="batchStatus">${selOpts(STATUS_OPTIONS,"在库")}</select></label>
+        <label>存放位置 <input id="batchLocation" type="text" /></label>
+        <label>责任人 <input id="batchOwner" type="text" /></label>
+        <label></label>
+        <label style="grid-column:1 / -1;">备注 <textarea id="batchNote" rows="3"></textarea></label>`;
+    syncBatchSub();
+    document.getElementById("batchMask").style.display="flex";
+}
+function syncBatchSub(){
+    const mc=document.getElementById("batchMainCategory")?.value||defMainCode();
+    const el=document.getElementById("batchSubCategory"),list=getSubs(mc);
+    el.innerHTML=list.map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
+    if(list[0])el.value=list[0].code;
+}
+function closeBatchModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("batchMask").style.display="none"}
+function confirmBatchAdd(){
+    const count=Math.max(1,parseInt(document.getElementById("batchCount").value||"1",10));
+    const mc=document.getElementById("batchMainCategory")?.value||defMainCode();
+    const sc=document.getElementById("batchSubCategory")?.value||defSubCode(mc);
+    const brand=document.getElementById("batchBrand").value.trim(),model=document.getElementById("batchModel").value.trim();
+    const spec=document.getElementById("batchSpec").value.trim(),qty=document.getElementById("batchQty").value||"1";
+    const status=document.getElementById("batchStatus").value||"在库",loc=document.getElementById("batchLocation").value.trim();
+    const owner=document.getElementById("batchOwner").value.trim(),note=document.getElementById("batchNote").value.trim();
+    const main=getCat(mc),sub=getSub(mc,sc);
+    for(let i=0;i<count;i++){const row={uid:uid(),id:reserveNo(),source:"",assetMainCode:mc,assetMainName:main.name,assetSubCode:sc,assetSubName:sub.name,brand,model,spec,qty,sn:"",check:"待测",status,location:loc,date:"",owner,note,type:"",machineClass:""};rows.push(row);addLog("新增",row,`批量 ${i+1}/${count}`)}
+    sortRows();saveState();closeBatchModal();renderAll();
+}
+
+/* ================================================================
+   MODALS — Bulk Edit
+   ================================================================ */
+function openBulkEditModal(){
+    if(!selectedSet.size){alert("请先选择记录");return}
+    document.getElementById("bulkFormGrid").innerHTML=`
+        <label>资产大类 <select id="bulkMainCategory" onchange="syncBulkSub()"><option value="">保持不变</option>${CATEGORY_TREE.map(x=>`<option value="${x.code}">${x.name}</option>`).join("")}</select></label>
+        <label>资产子类 <select id="bulkSubCategory"><option value="">保持不变</option></select></label>
+        <label>当前状态 <select id="bulkStatus"><option value="">保持不变</option>${selOpts(STATUS_OPTIONS,"")}</select></label>
+        <label>存放位置 <input id="bulkLocation" type="text" placeholder="留空不改" /></label>
+        <label>责任人 <input id="bulkOwner" type="text" placeholder="留空不改" /></label>
+        <label>数量 <input id="bulkQty" type="number" min="1" placeholder="留空不改" /></label>
+        <label style="grid-column:1 / -1;">备注 <textarea id="bulkNote" rows="3" placeholder="留空不改"></textarea></label>`;
+    document.getElementById("bulkEditMask").style.display="flex";
+}
+function syncBulkSub(){
+    const mc=document.getElementById("bulkMainCategory").value;
+    const el=document.getElementById("bulkSubCategory");if(!el)return;
+    if(!mc){el.innerHTML='<option value="">保持不变</option>';return}
+    el.innerHTML='<option value="">保持不变</option>'+getSubs(mc).map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
+}
+function closeBulkEditModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("bulkEditMask").style.display="none"}
+function applyBulkEdit(){
+    const mc=document.getElementById("bulkMainCategory").value,sc=document.getElementById("bulkSubCategory").value;
+    const status=document.getElementById("bulkStatus").value,loc=document.getElementById("bulkLocation").value.trim();
+    const owner=document.getElementById("bulkOwner").value.trim(),qty=document.getElementById("bulkQty").value;
+    const note=document.getElementById("bulkNote").value.trim();
+    rows.filter(r=>selectedSet.has(r.uid)).forEach(row=>{
+        if(mc){row.assetMainCode=mc;row.assetMainName=getCat(mc).name;if(sc){row.assetSubCode=sc;row.assetSubName=getSub(mc,sc).name}else{const f=getSubs(mc)[0];if(f){row.assetSubCode=f.code;row.assetSubName=f.name}}}
+        if(status)row.status=status;if(loc)row.location=loc;if(owner)row.owner=owner;if(qty)row.qty=qty;if(note)row.note=note;
+        addLog("批量修改",row);
+    });
+    sortRows();saveState();closeBulkEditModal();renderAll();
+}
+
+/* ================================================================
+   TRASH MANAGEMENT
+   ================================================================ */
+function openTrashModal(){document.getElementById("trashMask").style.display="flex";renderTrash()}
+function closeTrashModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("trashMask").style.display="none"}
+function restoreTrash(uidValue){const idx=trash.findIndex(r=>r.uid===uidValue);if(idx<0)return;const row=trash[idx];if(isDupId(row.id))row.id=nextNo();rows.push(clone(row));trash.splice(idx,1);sortRows();addLog("恢复",row,"从回收站恢复");saveState();renderAll()}
+function permDelete(uidValue){const idx=trash.findIndex(r=>r.uid===uidValue);if(idx<0)return;const row=trash[idx];if(!confirm(`确定彻底删除 ${row.id} 吗？不可恢复。`))return;trash.splice(idx,1);addLog("彻底删除",row);saveState();renderAll()}
+function emptyTrash(){if(!trash.length){alert("回收站已空");return}if(!confirm(`确定清空 ${trash.length} 条吗？`))return;trash=[];addLog("清空回收站",{id:"SYSTEM"});saveState();renderAll()}
+
+/* ================================================================
+   SNAPSHOTS
+   ================================================================ */
+function loadLocalDraft(){
+    try{const draft=safeJson(lsGet(STORAGE_DRAFT,""));if(!draft){alert("没有可恢复的草稿");return}
+        rows=normRows(draft.rows||[]);trash=normTrash(draft.trash||[]);logs=normLogs(draft.logs||[]);snapshots=normSnaps(draft.snapshots||[]);safeRemoteVersion=draft.safeRemoteVersion||0;
+        migrateAll();ensureUniqueIds();sortRows();saveState();renderAll();alert("草稿已恢复")}catch(e){alert("恢复失败："+e.message)}
+}
+function rollbackSnapshot(idx){const snap=snapshots[idx];if(!snap)return;if(!confirm(`回滚到 v${snap.version||idx+1}？当前数据将被覆盖。`))return;rows=normRows(clone(snap.rows||[]));trash=normTrash(clone(snap.trash||[]));logs=normLogs(clone(snap.logs||[]));migrateAll();ensureUniqueIds();sortRows();pushSnapshot("回滚快照",`回滚到 v${snap.version||idx+1}`);saveState();renderAll()}
+function refreshSafeHistory(){renderSafeHistory()}
+
+/* ================================================================
+   LABEL PRINT
+   ================================================================ */
+function openLabelPrint(){
+    const filtered=sorted(getFiltered());
+    document.getElementById("labelContainer").innerHTML=filtered.map(r=>`<div class="label-card"><div class="label-top"><div><div class="label-id">${esc(r.id)}</div><div class="label-meta">${esc(r.assetMainName)} / ${esc(r.assetSubName)}</div></div><div class="status-tag ${statusCls(r.status)}">${esc(r.status||"待检测")}</div></div><div class="label-body"><div class="label-meta">品牌：${esc(r.brand||"—")} | 型号：${esc(r.model||"—")}</div><div class="label-meta">规格：${esc(r.spec||"—")} | 数量：${esc(r.qty||"1")}</div><div class="label-meta">序列号：${esc(r.sn||"—")}</div></div><div class="label-foot">存放位置：${esc(r.location||"—")}<br/>责任人：${esc(r.owner||"—")}<br/>备注：${esc(r.note||"—")}</div></div>`).join("")||'<div class="small">当前没有可打印的记录。</div>';
+    document.body.classList.add("label-print-mode");document.getElementById("labelMask").style.display="flex";
+}
+function closeLabelPrint(){document.body.classList.remove("label-print-mode");document.getElementById("labelMask").style.display="none"}
+function printFilteredList(){
+    const filtered=sorted(getFiltered()),w=window.open("","_blank");if(!w){alert("浏览器阻止了弹窗");return}
+    const rowsHtml=filtered.map(r=>`<tr>${["id","assetMainName","assetSubName","brand","model","spec","qty","sn","check","status","location","date","owner","note"].map(k=>`<td>${esc(r[k]||"")}</td>`).join("")}</tr>`).join("");
+    w.document.write(`<html><head><meta charset="utf-8"><title>资产清单打印</title><style>body{font-family:Microsoft YaHei,Arial;padding:20px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ccc;padding:6px;text-align:center}th{background:#0f172a;color:#fff}h2{margin:0 0 12px}</style></head><body><h2>TI部资产管理系统 - 资产清单</h2><div style="margin-bottom:10px;color:#666">打印时间：${new Date().toLocaleString()} | 共 ${filtered.length} 条</div><table><thead><tr>${["台账编号","资产大类","资产子类","品牌","型号","规格","数量","序列号","检测结果","当前状态","存放位置","入库日期","责任人","备注"].map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`);
+    w.document.close();w.focus();setTimeout(()=>w.print(),300);
+}
+
+/* ================================================================
+   EXPORT / IMPORT
+   ================================================================ */
+function getNextSeq(){const d=todayYmd();exportSeqMap[d]=(exportSeqMap[d]||0)+1;lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap));return String(exportSeqMap[d]).padStart(4,"0")}
+function buildFname(prefix,ext){return `${prefix}_${todayYmd()}_${getNextSeq()}.${ext}`}
+function downloadText(prefix,ext,content,mime,bom=false){
+    const fname=buildFname(prefix,ext),text=(bom?"﻿":"")+content;
+    const blob=new Blob([text],{type:mime}),a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    addLog("导出",{id:"SYSTEM"},`下载：${fname}`);saveState();setSyncInfo(`已导出：${fname}`);
+}
+function rowsToCSV(list){const headers=["台账编号","资产大类","资产子类","品牌","型号","规格","数量","序列号","检测结果","当前状态","存放位置","入库日期","责任人","备注"];return headers.map(csvCell).join(",")+"\n"+list.map(r=>[r.id,r.assetMainName,r.assetSubName,r.brand,r.model,r.spec,r.qty,r.sn,r.check,r.status,r.location,r.date,r.owner,r.note].map(csvCell).join(",")).join("\n")}
+function exportAllJSON(){downloadText("ledger_all","json",JSON.stringify({rows:sorted(rows),trash,logs,snapshots},null,2),"application/json;charset=utf-8")}
+function exportAllCSV(){downloadText("ledger_all","csv",rowsToCSV(sorted(rows)),"text/csv;charset=utf-8",true)}
+function exportFilteredJSON(){downloadText("ledger_filtered","json",JSON.stringify({rows:sorted(getFiltered())},null,2),"application/json;charset=utf-8")}
+function exportFilteredCSV(){downloadText("ledger_filtered","csv",rowsToCSV(sorted(getFiltered())),"text/csv;charset=utf-8",true)}
+function triggerImportJSON(){document.getElementById("jsonFile").value="";document.getElementById("jsonFile").click()}
+function triggerImportCSV(){document.getElementById("csvFile").value="";document.getElementById("csvFile").click()}
+
+/* ================================================================
+   FILE SYSTEM ACCESS API (微盘/备份)
+   ================================================================ */
+async function ensurePerm(handle,mode="readwrite"){if(!handle)return false;try{const opts={mode};if(await handle.queryPermission(opts)==="granted")return true;if(await handle.requestPermission(opts)==="granted")return true;return false}catch(e){return false}}
+async function checkPerm(handle){if(!handle)return false;try{return await handle.queryPermission({mode:"readwrite"})==="granted"}catch(e){return false}}
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE)};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function saveHandle(key,handle){try{const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,"readwrite"),store=tx.objectStore(DB_STORE),req=store.put(handle,key);req.onsuccess=()=>resolve(true);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error)}})}catch(e){return false}}
+async function loadHandle(key){try{const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(DB_STORE,"readonly"),store=tx.objectStore(DB_STORE),req=store.get(key);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error)}})}catch(e){return null}}
+function safeName(h){return h?.name||"未选择"}
+
+async function initFolders(){
+    try{
+        syncDirHandle=await loadHandle("syncDirHandle");backupDirHandle=await loadHandle("backupDirHandle");
+        if(syncDirHandle){const ok=await ensurePerm(syncDirHandle);if(!ok)syncDirHandle=null}
+        if(backupDirHandle){const ok=await ensurePerm(backupDirHandle);if(!ok)backupDirHandle=null}
+        refreshFolderStates();
+    }catch(e){syncDirHandle=null;backupDirHandle=null;refreshFolderStates()}
+}
+async function clearSavedFolders(){
+    syncDirHandle=null;backupDirHandle=null;
+    try{const db=await openDB(),tx=db.transaction(DB_STORE,"readwrite");tx.objectStore(DB_STORE).delete("syncDirHandle");tx.objectStore(DB_STORE).delete("backupDirHandle");tx.oncomplete=()=>db.close()}catch(e){}
+    refreshFolderStates();setSyncInfo("已清除文件夹路径");
+}
+async function chooseSyncFolder(){
+    if(!window.showDirectoryPicker){alert("当前浏览器不支持，请使用 Chrome/Edge");return}
+    try{const h=await window.showDirectoryPicker({mode:"readwrite"});if(!await ensurePerm(h)){alert("授权失败");return}syncDirHandle=h;await saveHandle("syncDirHandle",h);refreshFolderStates();setSyncInfo("微盘文件夹已记住")}catch(e){if(e.name!=="AbortError")alert("选择失败："+e.message)}
+}
+async function chooseBackupFolder(){
+    if(!window.showDirectoryPicker){alert("当前浏览器不支持，请使用 Chrome/Edge");return}
+    try{const h=await window.showDirectoryPicker({mode:"readwrite"});if(!await ensurePerm(h)){alert("授权失败");return}backupDirHandle=h;await saveHandle("backupDirHandle",h);refreshFolderStates();setSyncInfo("备份文件夹已记住")}catch(e){if(e.name!=="AbortError")alert("选择失败："+e.message)}
+}
+async function reauthorizeFolder(){await chooseSyncFolder();await chooseBackupFolder()}
+
+async function refreshFolderStates(){
+    const sp=await checkPerm(syncDirHandle),bp=await checkPerm(backupDirHandle);
+    ["syncFolderState","backupFolderState"].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.textContent=safeName(i?backupDirHandle:syncDirHandle)});
+    ["syncFolderPermState","backupFolderPermState"].forEach((id,i)=>{const el=document.getElementById(id),p=i?bp:sp,h=i?backupDirHandle:syncDirHandle;if(el){el.textContent=h?(p?"可写/已授权":"无权限/未授权"):"无权限/未授权";el.className="state "+(p?"state-ok":"state-no")}});
+    const badge=document.getElementById("folderStateBadge");if(badge){if(sp||bp){badge.textContent="部分就绪";badge.className="safe-pill warn"}else{badge.textContent="未就绪";badge.className="safe-pill danger"}}
+    const info=document.getElementById("syncInfo");if(info){if(syncDirHandle&&backupDirHandle)info.textContent="已选择微盘与备份";else if(syncDirHandle)info.textContent="已选择微盘";else if(backupDirHandle)info.textContent="已选择备份";else info.textContent="未选择微盘同步文件夹"}
+}
+async function uploadToSyncFile(){
+    if(!syncDirHandle){alert("请先选择微盘同步文件夹");return false}
+    if(!await ensurePerm(syncDirHandle)){alert("微盘没有写入权限");refreshFolderStates();return false}
+    try{const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots};const fh=await syncDirHandle.getFileHandle(FILE_NAME,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("上传微盘",{id:"SYSTEM"},`v${safeRemoteVersion}`);saveState();renderAll();refreshFolderStates();setSyncInfo(`已上传：v${safeRemoteVersion}`);alert("上传成功！");return true}catch(e){alert("上传失败："+e.message);return false}
+}
+async function loadFromSyncFile(){
+    if(!syncDirHandle){alert("请先选择微盘文件夹");return}
+    if(!await ensurePerm(syncDirHandle)){alert("微盘没有权限");refreshFolderStates();return}
+    try{
+        let exists=false;for await(const[n]of syncDirHandle.entries()){if(n===FILE_NAME){exists=true;break}}
+        if(!exists){alert(`文件夹中没有 ${FILE_NAME}`);return}
+        const fh=await syncDirHandle.getFileHandle(FILE_NAME),file=await fh.getFile(),text=await file.text();
+        let raw;try{raw=safeJson(text)}catch(e){alert("JSON解析失败："+e.message);return}
+        rows=normRows(raw.rows||[]);trash=normTrash(raw.trash||[]);logs=normLogs(raw.logs||[]);snapshots=normSnaps(raw.snapshots||[]);safeRemoteVersion=raw.version||0;
+        migrateAll();ensureUniqueIds();sortRows();pushSnapshot("从微盘加载");saveState();renderAll();refreshFolderStates();setSyncInfo("已从微盘加载");alert("加载成功！")
+    }catch(e){alert(`加载失败：${e.message}`)}
+}
+async function saveToBackupFile(){
+    if(!backupDirHandle)return false;
+    if(!await ensurePerm(backupDirHandle)){setSyncInfo("备份文件夹无权限");return false}
+    try{const fn=`${SAFE_BACKUP_PREFIX}_${todayYmd()}_${Date.now()}.json`;const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots};const fh=await backupDirHandle.getFileHandle(fn,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("备份",{id:"SYSTEM"},fn);saveState();refreshFolderStates();setSyncInfo(`已备份：${fn}`);return true}catch(e){setSyncInfo("备份失败："+e.message);return false}
+}
+
+/* ================================================================
+   MAIN ACTIONS
+   ================================================================ */
+function saveAllDebounced(){clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{try{pushSnapshot();sortRows();saveState();renderStats();renderCharts();renderLogs();renderSafeHistory();refreshFolderStates();if(backupDirHandle)try{await saveToBackupFile()}catch(e){}}catch(e){setSyncInfo("自动保存失败："+e.message)}},250)}
+async function saveNow(){
+    try{pushSnapshot("立即保存");ensureUniqueIds();sortRows();const ok=saveState();renderAll();refreshFolderStates();let bok=true;if(backupDirHandle)bok=await saveToBackupFile();
+        if(!ok)setSyncInfo("本地缓存写入有警告");else setSyncInfo(bok?(backupDirHandle?"已保存并备份":"已保存"):"已保存，备份失败")}catch(e){alert("保存失败："+e.message);setSyncInfo("保存失败："+e.message)}
+}
+function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updateSortBtn();updatePillCounts()}
+function resetDemo(){
+    if(!confirm("确认恢复示例数据？当前数据将被覆盖。"))return;
+    rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];selectedSet.clear();idReserveSet.clear();safeRemoteVersion=0;
+    migrateAll();ensureUniqueIds();sortRows();pushSnapshot("恢复示例");saveState();renderAll();
+}
+
+/* ================================================================
+   FILTER SYNC
+   ================================================================ */
+function syncMainFilter(){
+    const el=document.getElementById("mainCategoryFilter");if(!el)return;
+    el.innerHTML='<option value="">全部大类</option>'+CATEGORY_TREE.map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
+}
+function syncSubFilter(){
+    const mc=document.getElementById("mainCategoryFilter")?.value||"",el=document.getElementById("subCategoryFilter");if(!el)return;
+    if(!mc){el.innerHTML='<option value="">全部子类</option>';return}
+    el.innerHTML='<option value="">全部子类</option>'+getSubs(mc).map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
+}
+function syncStatusFilter(){
+    const el=document.getElementById("statusFilter");if(!el)return;
+    el.innerHTML='<option value="">全部状态</option>'+STATUS_OPTIONS.map(s=>`<option value="${s}">${s}</option>`).join("");
+}
+function toggleSortOrder(){sortAsc=!sortAsc;renderTable();renderStats();renderCharts();updateSortBtn();updateCountInfo()}
+
+/* ================================================================
+   KEYBOARD SHORTCUTS
+   ================================================================ */
+function setupKeyboard(){
+    document.addEventListener("keydown",e=>{
+        if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA"||e.target.tagName==="SELECT"){
+            if(e.key==="Escape"){e.target.blur();return}
+            return;
+        }
+        const ctrl=e.ctrlKey||e.metaKey;
+        if(ctrl&&e.key==="f"){e.preventDefault();document.getElementById("searchInput").focus()}
+        else if(ctrl&&e.key==="n"){e.preventDefault();addRow()}
+        else if(ctrl&&e.key==="s"){e.preventDefault();saveNow()}
+        else if(ctrl&&e.key==="z"){e.preventDefault();if(snapshots.length>0){rollbackSnapshot(0)}else{alert("没有可撤销的快照")}}
+        else if(e.key==="Delete"||e.key==="Del"){if(selectedSet.size>0){e.preventDefault();moveSelToTrash()}}
+        else if(e.key==="Escape"){closeRowModal();closeBatchModal();closeBulkEditModal();closeTrashModal();closeLabelPrint();clearSel();document.querySelectorAll("details").forEach(d=>d.open=false)}
+    });
+}
+
+/* ================================================================
+   FILE IMPORT HANDLERS
+   ================================================================ */
+document.getElementById("jsonFile").addEventListener("change",async e=>{
+    const file=e.target.files[0];if(!file)return;const text=await file.text();let data;
+    try{data=safeJson(text)}catch(err){alert("JSON解析失败："+err.message);return}
+    const list=data.rows||data||[];if(!confirm(`确认导入 ${Array.isArray(list)?list.length:0} 条记录？`))return;
+    rows=normRows(Array.isArray(list)?list:[]);if(data.trash)trash=normTrash(data.trash);if(data.logs)logs=normLogs(data.logs);if(data.snapshots)snapshots=normSnaps(data.snapshots);
+    migrateAll();ensureUniqueIds();sortRows();pushSnapshot("导入JSON");saveState();renderAll();alert("导入成功");
+});
+document.getElementById("csvFile").addEventListener("change",async e=>{
+    const file=e.target.files[0];if(!file)return;const text=await file.text();const table=parseCSV(text);if(table.length<2){alert("CSV无效");return}
+    const hdr=table[0],idx=n=>hdr.indexOf(n);
+    const list=table.slice(1).map(r=>({uid:uid(),id:r[idx("台账编号")]||nextNo(),assetMainName:r[idx("资产大类")]||"",assetSubName:r[idx("资产子类")]||"",brand:r[idx("品牌")]||"",model:r[idx("型号")]||"",spec:r[idx("规格")]||"",qty:r[idx("数量")]||"1",sn:r[idx("序列号")]||"",check:r[idx("检测结果")]||"待测",status:r[idx("当前状态")]||"待检测",location:r[idx("存放位置")]||"",date:r[idx("入库日期")]||"",owner:r[idx("责任人")]||"",note:r[idx("备注")]||"",source:"",assetMainCode:"",assetSubCode:"",type:"",machineClass:""}));
+    if(!confirm(`确认导入 ${list.length} 条记录？`))return;
+    rows=normRows(list);migrateAll();ensureUniqueIds();sortRows();pushSnapshot("导入CSV");saveState();renderAll();alert("导入成功");
+});
+
+/* ================================================================
+   INIT
+   ================================================================ */
+window.addEventListener("load",async()=>{
+    initColVis();
+    loadState();
+    syncMainFilter();syncSubFilter();syncStatusFilter();
+    document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
+    await initFolders();
+    renderAll();
+    setupKeyboard();
+    updatePillCounts();
+});
+</script>
+</body>
+</html>
