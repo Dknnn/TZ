@@ -59,6 +59,15 @@ body.compact .cell, body.compact .select-cell { height: 30px; font-size: 11px; p
 body.compact thead th { padding: 6px 4px; font-size: 10px; }
 body.compact .card { padding: 8px; }
 body.compact .stat .value { font-size: 18px; }
+
+/* FAB Back-to-top */
+.fab-btn { position: fixed; bottom: 24px; right: 24px; width: 44px; height: 44px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 18px; border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(29,78,216,.3); z-index: 9998; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.fab-btn.visible { opacity: 1; pointer-events: auto; }
+.fab-btn:hover { background: var(--primary-2); transform: translateY(-2px); }
+
+/* Cell edit affordance */
+.cell:not([type="date"]):not([type="number"]):hover, .select-cell:hover { border-bottom: 2px dashed #93c5fd; cursor: text; }
+body.dark .cell:hover, body.dark .select-cell:hover { border-bottom-color: #60a5fa; }
 body.dark .folder-box { background: #1e293b; border-color: #334155; }
 body.dark .folder-box .value { color: #e2e8f0; }
 body.dark .preview-table-wrap th { background: #1a2332; }
@@ -329,16 +338,17 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
             <p>v2.0 — 支持资产台账管理、状态跟踪、导入导出、标签打印 | 快捷键：<span class="shortcut-kbd">Ctrl+N</span> 新增 <span class="shortcut-kbd">Ctrl+S</span> 保存 <span class="shortcut-kbd">Ctrl+F</span> 搜索 <span class="shortcut-kbd">Del</span> 删除 <span class="shortcut-kbd">Esc</span> 取消</p>
         </div>
         <div class="actions actions-compact no-print">
-            <button class="btn-secondary" onclick="reauthorizeFolder()">重新授权</button>
-            <button class="btn-secondary" onclick="refreshFolderStates()">刷新状态</button>
-            <button class="btn-secondary" onclick="clearSavedFolders()">清除路径</button>
-            <button class="btn-secondary" onclick="saveNow()">立即保存</button>
-            <button class="btn-secondary" onclick="uploadToSyncFile()">上传微盘</button>
+            <button class="btn-primary" onclick="saveNow()">💾 立即保存</button>
+            <button class="btn-secondary" onclick="uploadToSyncFile()">☁ 上传微盘</button>
             <button class="btn-secondary" id="darkToggle" onclick="toggleDark()" title="切换暗色模式">🌙</button>
             <details class="more-menu">
-                <summary>更多操作</summary>
+                <summary>更多</summary>
                 <div class="more-menu-list">
+                    <button onclick="reauthorizeFolder()">重新授权文件夹</button>
+                    <button onclick="refreshFolderStates()">刷新文件夹状态</button>
+                    <button onclick="clearSavedFolders()">清除已记住路径</button>
                     <button onclick="loadFromSyncFile()">从微盘重新加载</button>
+                    <div class="ctx-sep"></div>
                     <button onclick="exportAllJSON()">导出全部 JSON</button>
                     <button onclick="exportAllCSV()">导出全部 CSV</button>
                     <button onclick="exportAllExcel()">导出全部 Excel</button>
@@ -363,8 +373,8 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     <div class="grid">
         <div class="card"><div class="stat"><div><div class="label">总件数</div><div class="value" id="statTotalQty">0</div><div class="tip">按数量汇总</div></div><div class="badge b-blue">TOTAL</div></div></div>
         <div class="card"><div class="stat"><div><div class="label">记录数</div><div class="value" id="statRecord">0</div><div class="tip">台账行数</div></div><div class="badge b-gray">REC</div></div></div>
-        <div class="card"><div class="stat"><div><div class="label">在库</div><div class="value" id="statIn">0</div><div class="tip">可直接使用</div></div><div class="badge b-green">IN</div></div></div>
-        <div class="card"><div class="stat"><div><div class="label">待检测</div><div class="value" id="statWait">0</div><div class="tip">待测试</div></div><div class="badge b-orange">CHK</div></div></div>
+        <div class="card" style="border-left:4px solid #16a34a;"><div class="stat"><div><div class="label">在库</div><div class="value" id="statIn">0</div><div class="tip">可直接使用</div></div><div class="badge b-green">IN</div></div></div>
+        <div class="card" style="border-left:4px solid #f59e0b;"><div class="stat"><div><div class="label">待检测</div><div class="value" id="statWait">0</div><div class="tip">待测试</div></div><div class="badge b-orange">CHK</div></div></div>
         <div class="card"><div class="stat"><div><div class="label">已领用</div><div class="value" id="statUse">0</div><div class="tip">已出库</div></div><div class="badge b-blue">USED</div></div></div>
         <div class="card"><div class="stat"><div><div class="label">重复编号</div><div class="value" id="statDupId">0</div><div class="tip">需检查</div></div><div class="badge b-red">ID</div></div></div>
         <div class="card"><div class="stat"><div><div class="label">重复序列号</div><div class="value" id="statDupSn">0</div><div class="tip">需检查</div></div><div class="badge b-red">SN</div></div></div>
@@ -397,8 +407,8 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     </div>
 
     <!-- FOLDER STATE -->
-    <details class="fold-panel" open>
-        <summary class="fold-head"><span>文件夹状态</span><span class="fold-tip">点击折叠 / 展开</span></summary>
+    <details class="fold-panel">
+        <summary class="fold-head"><span>📁 文件夹状态</span><span class="fold-tip">点击折叠 / 展开</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
                 <div><div class="meta">这里可以直观看到微盘、备份、导出文件夹是否已选择。</div></div>
@@ -414,11 +424,11 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
 
     <!-- CHARTS -->
     <div class="charts">
-        <details class="fold-panel chart-fold" open>
+        <details class="fold-panel chart-fold">
             <summary class="fold-head"><span>状态分布</span><span class="fold-tip">点击折叠</span></summary>
             <div class="fold-body"><div id="statusChart" class="bar-chart"></div></div>
         </details>
-        <details class="fold-panel chart-fold" open>
+        <details class="fold-panel chart-fold">
             <summary class="fold-head"><span>类别分布</span><span class="fold-tip">点击折叠</span></summary>
             <div class="fold-body"><div id="typeChart" class="bar-chart"></div></div>
         </details>
@@ -488,6 +498,7 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     </details>
 
     <div class="footer-tip">© 2026 鑫玺生物科技 信息部 | 内部资产管理系统 v2.0</div>
+    <button class="fab-btn" id="fabTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">⬆</button>
 </div>
 
 <!-- ─── MODALS ─── -->
@@ -1517,6 +1528,8 @@ const CSV_KEYS=CSV_COLS.map(c=>c.key);
 window.addEventListener("load",async()=>{
     initColVis();
     initDark();initDensity();
+    /* FAB scroll */
+    window.addEventListener("scroll",()=>{const fab=document.getElementById("fabTop");if(fab)fab.classList.toggle("visible",window.scrollY>400)});
     loadState();
     document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
     await initFolders();
