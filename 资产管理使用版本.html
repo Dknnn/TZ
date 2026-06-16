@@ -685,6 +685,7 @@ function renderCatMgr(){
             </div>
         </div>
     `).join("");
+    setTimeout(()=>makeCustomSelects(grid),10);
 }
 function renameMainCat(mainCode,newName){
     const m=CATEGORY_TREE.find(x=>x.code===mainCode);if(!m||!newName.trim())return;
@@ -707,12 +708,14 @@ function moveSubCat(fromMain,subCode,toMain){
     const idx=fm.subs.findIndex(x=>x.code===subCode);if(idx<0)return;
     const sub=fm.subs.splice(idx,1)[0];
     const tm=CATEGORY_TREE.find(x=>x.code===toMain);if(!tm){fm.subs.splice(idx,0,sub);return}
-    // check duplicate code
+    const oldCode=sub.code;
     if(tm.subs.some(x=>x.code===sub.code)){sub.code=sub.code+"_"+Date.now().toString(36)}
     tm.subs.push(sub);
-    rows.forEach(r=>{if(r.assetMainCode===fromMain&&r.assetSubCode===subCode){r.assetMainCode=toMain;r.assetMainName=tm.name;r.assetSubName=sub.name}});
+    // 迁移所有关联资产到新大类，同时更新可能变更的子类代码
+    const movedCount=rows.filter(r=>r.assetMainCode===fromMain&&r.assetSubCode===oldCode).length;
+    rows.forEach(r=>{if(r.assetMainCode===fromMain&&r.assetSubCode===oldCode){r.assetMainCode=toMain;r.assetMainName=tm.name;r.assetSubCode=sub.code;r.assetSubName=sub.name}});
     saveCatTree();renderCatMgr();renderTable();renderStats();renderCharts();
-    toast(`"${sub.name}" 已移至"${tm.name}"`,"success");
+    toast(`"${sub.name}" 已移至"${tm.name}"，共迁移 ${movedCount} 条资产`,"success");
 }
 function addSubCat(mainCode){
     const m=CATEGORY_TREE.find(x=>x.code===mainCode);if(!m)return;
