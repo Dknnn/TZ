@@ -47,6 +47,9 @@ body.dark .bar-name { color: #cbd5e1; }
 body.dark .bar-value { color: #e2e8f0; }
 body.dark .folder-box { background: #1e293b; border-color: #334155; }
 body.dark .folder-box .value { color: #e2e8f0; }
+body.dark .preview-table-wrap th { background: #1a2332; }
+body.dark .cell.invalid { background: #3b1111 !important; border-color: #ef4444 !important; }
+body.dark .sort-indicator.active { color: #60a5fa; }
 * { box-sizing: border-box }
 html, body { height: 100% }
 body {
@@ -153,6 +156,19 @@ tbody tr.selected td { background: #eef6ff !important }
 .cell, .select-cell { width: 100%; height: 42px; border: none; outline: none; background: transparent; padding: 0 10px; font-size: 12px; font-family: inherit; color: var(--text); }
 .cell:focus, .select-cell:focus { background: #f8fbff }
 .cell.dirty { background: #fefce8 !important; }
+@keyframes cellFlash { 0%{background:#fef08a}100%{background:transparent} }
+.cell.flash { animation: cellFlash 1.2s ease; }
+.cell.invalid { border: 2px solid #ef4444 !important; border-radius: 4px; background: #fef2f2 !important; }
+.sort-indicator { font-size: 10px; margin-left: 3px; opacity: .5; }
+.sort-indicator.active { opacity: 1; color: var(--primary); }
+
+/* Import Preview */
+.preview-table-wrap { overflow: auto; max-height: 320px; margin: 10px 0; border: 1px solid var(--line); border-radius: 10px; }
+.preview-table-wrap table { min-width: 800px; font-size: 11px; }
+.preview-table-wrap th { background: #f1f5f9; padding: 8px 6px; font-size: 11px; position: static; }
+.preview-table-wrap td { padding: 6px; white-space: nowrap; }
+.import-meta { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; }
+.import-meta span { font-weight: 700; color: var(--primary); }
 
 .row-actions { display: flex; justify-content: center; gap: 8px; padding: 6px 8px; flex-wrap: wrap; }
 
@@ -313,8 +329,10 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
                     <button onclick="loadFromSyncFile()">从微盘重新加载</button>
                     <button onclick="exportAllJSON()">导出全部 JSON</button>
                     <button onclick="exportAllCSV()">导出全部 CSV</button>
+                    <button onclick="exportAllExcel()">导出全部 Excel</button>
                     <button onclick="exportFilteredJSON()">导出筛选 JSON</button>
                     <button onclick="exportFilteredCSV()">导出筛选 CSV</button>
+                    <button onclick="exportFilteredExcel()">导出筛选 Excel</button>
                     <button onclick="triggerImportJSON()">导入 JSON</button>
                     <button onclick="triggerImportCSV()">导入 CSV</button>
                     <button onclick="openLabelPrint()">打印标签</button>
@@ -487,6 +505,14 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     <div class="table-wrap" style="max-height:60vh;"><table style="min-width:1200px;"><thead><tr><th style="width:120px;">编号</th><th style="width:130px;">大类</th><th style="width:130px;">子类</th><th style="width:120px;">品牌</th><th style="width:160px;">型号</th><th style="width:110px;">状态</th><th style="width:180px;">删除时间</th><th style="width:180px;">操作</th></tr></thead><tbody id="trashModalBody"></tbody></table></div>
 </div></div>
 
+<!-- Import Preview Modal -->
+<div id="importPreviewMask" class="mask" onclick="closeImportPreview(event)"><div class="modal" onclick="event.stopPropagation()" style="width:min(1400px,100%);">
+    <div class="modal-head"><h3 id="importPreviewTitle">导入预览</h3><button class="btn-danger" onclick="closeImportPreview()">关闭</button></div>
+    <div class="import-meta" id="importPreviewMeta"></div>
+    <div class="preview-table-wrap" id="importPreviewTable"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeImportPreview()">取消</button><button class="btn-primary" id="importConfirmBtn" onclick="confirmImport()">确认导入</button></div>
+</div></div>
+
 <div id="labelMask" class="mask"><div class="modal">
     <div class="modal-head no-print"><h3>条码标签打印</h3><div style="display:flex;gap:10px;"><button class="btn-secondary" onclick="window.print()">打印</button><button class="btn-danger" onclick="closeLabelPrint()">关闭</button></div></div>
     <div class="small no-print" style="padding:0 4px 10px;">打印的是"筛选后的记录"。</div>
@@ -607,9 +633,11 @@ let exportSeqMap={};
 let syncDirHandle=null, backupDirHandle=null;
 let safeRemoteVersion=0;
 let idReserveSet=new Set();
-let sortAsc=true;
+let sortAsc=true, sortKey="id";
 let colVis = {};            // {colKey: true/false}
 let quickFilter = "all";
+let formDirty = false;          // 弹窗表单是否有未保存修改
+let pendingImport = null;       // 待确认的导入数据
 
 /* ================================================================
    UTILITIES
@@ -727,7 +755,22 @@ function releaseNo(id){if(id)idReserveSet.delete(id)}
    ================================================================ */
 function sortComp(a,b){const na=parseNo(a.id),nb=parseNo(b.id);const aH=Number.isFinite(na),bH=Number.isFinite(nb);if(aH&&bH)return na-nb;if(aH)return-1;if(bH)return 1;return (a.id||"").localeCompare(b.id||"","zh-Hans-CN")}
 function sortRows(){rows.sort(sortComp)}
-function sorted(list){const arr=list.slice().sort(sortComp);return sortAsc?arr:arr.reverse()}
+function sorted(list){
+    if(sortKey==="id"){const arr=list.slice().sort(sortComp);return sortAsc?arr:arr.reverse()}
+    const arr=list.slice().sort((a,b)=>{
+        const va=(a[sortKey]??"").toString(), vb=(b[sortKey]??"").toString();
+        const na=parseFloat(va), nb=parseFloat(vb);
+        if(!isNaN(na)&&!isNaN(nb))return na-nb;
+        return va.localeCompare(vb,"zh-Hans-CN");
+    });
+    return sortAsc?arr:arr.reverse();
+}
+function toggleSort(colKey){
+    if(sortKey===colKey){sortAsc=!sortAsc}else{sortKey=colKey;sortAsc=true}
+    if(colKey==="id")sortRows();
+    renderTable();renderStats();renderCharts();updateSortBtn();updateCountInfo();
+}
+function toggleLedgerSort(){sortKey="id";toggleSort("id")}
 
 /* ================================================================
    STORAGE
@@ -854,7 +897,11 @@ function renderTableHead(){
     const thead=document.getElementById("tableHead");
     const visCols=COLUMNS.filter(c=>isColVis(c.key));
     thead.innerHTML=`<tr><th style="width:52px;"><input type="checkbox" id="selectAllBox" onclick="toggleSelectAll(this.checked)" /></th>`+
-        visCols.map(c=>`<th class="${c.sortable?'sortable':''}" style="width:${c.width}" ${c.sortable?'onclick="toggleSortOrder()"':''}>${c.label}</th>`).join("")+`</tr>`;
+        visCols.map(c=>{
+            const active=c.key===sortKey;
+            const arrow=active?(sortAsc?"↑":"↓"):"↕";
+            return `<th class="sortable" style="width:${c.width};cursor:pointer;" onclick="toggleSort('${c.key}')">${c.label}<span class="sort-indicator${active?' active':''}">${arrow}</span></th>`;
+        }).join("")+`</tr>`;
 }
 function renderTable(){
     renderTableHead();
@@ -951,8 +998,9 @@ function updateCountInfo(){
 }
 function updateSortBtn(){
     const btn=document.getElementById("ledgerSortBtn"),txt=document.getElementById("ledgerSortText");
-    if(!btn)return;btn.classList.add("sort-active");btn.classList.toggle("sort-desc",!sortAsc);
-    if(txt)txt.textContent=sortAsc?"编号：正序":"编号：倒序";
+    if(!btn)return;btn.classList.add("sort-active");
+    const col=COLUMNS.find(c=>c.key===sortKey)||{label:"编号"};
+    if(txt)txt.textContent=`${col.label}：${sortAsc?"正序":"倒序"}`;
 }
 function selectionBar(){
     const bar=document.getElementById("bulkBar"),title=document.getElementById("bulkBarTitle"),act=document.getElementById("bulkBarActions");
@@ -960,7 +1008,7 @@ function selectionBar(){
     bar.style.display="block";document.getElementById("selectedCount").textContent=cnt;
     const uid0=[...selectedSet][0];
     if(cnt===1){title.textContent="操作";act.innerHTML=`<button class="btn-purple" onclick="openRowModal('edit','${uid0}')">编辑</button><button class="btn-soft" onclick="dupRow('${uid0}')">复制</button><button class="btn-orange" onclick="trashRow('${uid0}')">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
-    else{title.textContent="多选批量操作";act.innerHTML=`<button class="btn-purple" onclick="openBulkEditModal()">批量修改</button><button class="btn-orange" onclick="moveSelToTrash()">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
+    else{title.textContent="多选批量操作";act.innerHTML=`<button class="btn-purple" onclick="openBulkEditModal()">批量修改</button><button class="btn-green" onclick="batchSetStatus('在库')">改：在库</button><button class="btn-orange" onclick="batchSetStatus('已领用')">改：已领用</button><button class="btn-orange" onclick="moveSelToTrash()">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
 }
 
 /* ================================================================
@@ -971,20 +1019,52 @@ function updateField(uidValue,field,value){
     const oldVal=row[field];const newVal=(value??"").toString().trim();
     if(oldVal===newVal)return;
     if(field==="id"){
-        if(!/^PA-\d+$/.test(newVal)){alert("编号格式不正确，须为 PA-0001");renderTable();return}
-        if(isDupId(newVal,uidValue)){alert(`编号 ${newVal} 已存在`);renderTable();return}
+        if(!/^PA-\d+$/.test(newVal)){flashCell(uidValue,field);toast("编号格式不正确，须为 PA-0001","warn");setCellInvalid(uidValue,field,true);renderTable();return}
+        if(isDupId(newVal,uidValue)){flashCell(uidValue,field);toast(`编号 ${newVal} 已存在，请换一个编号`,"warn");setCellInvalid(uidValue,field,true);renderTable();return}
+        setCellInvalid(uidValue,field,false);
         row[field]=newVal;releaseNo(oldVal);
         addLog("编号修改",row,"",{id:{old:oldVal,new:newVal}});
         sortRows();saveState();renderTable();renderStats();renderCharts();updateCountInfo();return;
+    }
+    // 实时重复序列号检测
+    if(field==="sn"&&newVal&&newVal!=="无"){
+        const dup=rows.filter(r=>r.uid!==uidValue&&(r.sn||"").trim()===newVal).length;
+        if(dup>0){setCellInvalid(uidValue,field,true);toast(`序列号 "${newVal}" 已存在 ${dup} 条记录`,"warn")}
+        else setCellInvalid(uidValue,field,false);
     }
     row[field]=value;
     const diff={};diff[field]={old:oldVal??"",new:value??""};
     addLog(field==="status"?"状态变更":"修改",row,"",diff);
     saveState();
-    // Incremental update
-    updateCellInDOM(uidValue,field,value);
+    updateCellInDOM(uidValue,field,value);flashCell(uidValue,field);
     renderStats();renderCharts();updateCountInfo();
     saveAllDebounced();
+}
+function flashCell(uidValue,field){
+    setTimeout(()=>{
+        const tr=document.querySelector(`#tableBody tr[data-uid="${uidValue}"]`);if(!tr)return;
+        const colIdx=COLUMNS.filter(c=>isColVis(c.key)).findIndex(c=>c.key===field);
+        if(colIdx<0)return;
+        const td=tr.querySelectorAll("td")[colIdx+1];if(!td)return;
+        const cell=td.querySelector(".cell, .select-cell");if(cell){cell.classList.add("flash");setTimeout(()=>cell.classList.remove("flash"),1300)}
+    },50);
+}
+function setCellInvalid(uidValue,field,invalid){
+    setTimeout(()=>{
+        const tr=document.querySelector(`#tableBody tr[data-uid="${uidValue}"]`);if(!tr)return;
+        const colIdx=COLUMNS.filter(c=>isColVis(c.key)).findIndex(c=>c.key===field);
+        if(colIdx<0)return;
+        const td=tr.querySelectorAll("td")[colIdx+1];if(!td)return;
+        const cell=td.querySelector(".cell, .select-cell");if(cell){if(invalid)cell.classList.add("invalid");else cell.classList.remove("invalid")}
+    },50);
+}
+// 实时编号重复检测
+function checkDupIdLive(inputEl){
+    const val=(inputEl.value||"").trim();
+    if(!val)return;
+    const row=rows.find(r=>r.uid===editingUid);
+    if(isDupId(val,row?.uid)){inputEl.style.border="2px solid #ef4444";inputEl.style.background="#fef2f2";inputEl.title="此编号已存在"}
+    else{inputEl.style.border="";inputEl.style.background="";inputEl.title=""}
 }
 function updateMainCat(uidValue,mainCode){
     const row=rows.find(r=>r.uid===uidValue);if(!row)return;
@@ -1029,15 +1109,17 @@ function moveSelToTrash(){
    ================================================================ */
 function buildRowFormGrid(){
     return ROW_FORM_FIELDS.map(([elId,key,label,type,opts])=>{
-        if(type==="mainCat") return `<label>${label} <select id="${elId}" onchange="syncRowSubOpts()"></select></label>`;
-        if(type==="subCat") return `<label>${label} <select id="${elId}"></select></label>`;
-        if(type==="select") return `<label>${label} <select id="${elId}">${selOpts(opts,opts[0])}</select></label>`;
-        if(type==="textarea") return `<label style="grid-column:1 / -1;">${label} <textarea id="${elId}" rows="3"></textarea></label>`;
-        if(type==="number") return `<label>${label} <input id="${elId}" type="number" min="1" value="1" /></label>`;
-        if(type==="date") return `<label>${label} <input id="${elId}" type="date" /></label>`;
-        return `<label>${label} <input id="${elId}" type="text" /></label>`;
+        if(type==="mainCat") return `<label>${label} <select id="${elId}" onchange="syncRowSubOpts();markDirty()"></select></label>`;
+        if(type==="subCat") return `<label>${label} <select id="${elId}" onchange="markDirty()"></select></label>`;
+        if(type==="select") return `<label>${label} <select id="${elId}" onchange="markDirty()">${selOpts(opts,opts[0])}</select></label>`;
+        if(type==="textarea") return `<label style="grid-column:1 / -1;">${label} <textarea id="${elId}" rows="3" oninput="markDirty()"></textarea></label>`;
+        if(type==="number") return `<label>${label} <input id="${elId}" type="number" min="1" value="1" oninput="markDirty()" /></label>`;
+        if(type==="date") return `<label>${label} <input id="${elId}" type="date" oninput="markDirty()" /></label>`;
+        const extra=key==="id"?' oninput="checkDupIdLive(this);markDirty()"':' oninput="markDirty()"';
+        return `<label>${label} <input id="${elId}" type="text"${extra} /></label>`;
     }).join("");
 }
+function markDirty(){formDirty=true}
 function syncRowSubOpts(){
     const mc=document.getElementById("rowMainCategory")?.value||defMainCode();
     const el=document.getElementById("rowSubCategory");if(!el)return;
@@ -1045,7 +1127,7 @@ function syncRowSubOpts(){
     if(cur&&!getSubs(mc).some(x=>x.code===cur))el.value="";
 }
 function openRowModal(mode="add",uidValue=null){
-    modalMode=mode;editingUid=uidValue;
+    modalMode=mode;editingUid=uidValue;formDirty=false;
     document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
     document.getElementById("rowMask").style.display="flex";
     document.getElementById("rowModalTitle").textContent=mode==="edit"?"编辑资产":"新增资产";
@@ -1058,7 +1140,13 @@ function openRowModal(mode="add",uidValue=null){
         else{el.value=mode==="add"&&key==="id"?reserveNo():(row?.[key]??(key==="qty"?"1":""))}
     });
 }
-function closeRowModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("rowMask").style.display="none";if(modalMode==="add")releaseNo(document.getElementById("rowId")?.value)}
+function closeRowModal(e){
+    if(e&&e.target!==e.currentTarget)return;
+    if(formDirty&&!confirm("表单有未保存的修改，确定关闭吗？"))return;
+    document.getElementById("rowMask").style.display="none";
+    if(modalMode==="add")releaseNo(document.getElementById("rowId")?.value);
+    formDirty=false;editingUid=null;
+}
 function saveRowModal(){
     let committed=false;
     try{
@@ -1076,8 +1164,8 @@ function saveRowModal(){
             Object.assign(row,data,{assetMainName:main.name,assetSubName:sub.name});
             addLog("修改",row);sortRows();committed=true;
         }
-        saveState();
-    }catch(e){alert("保存失败："+e.message);return}
+        saveState();formDirty=false;
+    }catch(e){toast("保存失败："+e.message,"error");return}
     finally{if(committed){closeRowModal();renderAll()}}
 }
 function addRow(){openRowModal("add")}
@@ -1086,19 +1174,20 @@ function addRow(){openRowModal("add")}
    MODALS — Batch Add
    ================================================================ */
 function openBatchModal(){
+    formDirty=false;
     document.getElementById("batchFormGrid").innerHTML=`
-        <label>新增数量 <input id="batchCount" type="number" min="1" value="5" /></label>
-        <label>资产大类 <select id="batchMainCategory" onchange="syncBatchSub()">${renderMainOpts(defMainCode())}</select></label>
-        <label>资产子类 <select id="batchSubCategory"></select></label>
-        <label>品牌 <input id="batchBrand" type="text" /></label>
-        <label>型号 <input id="batchModel" type="text" /></label>
-        <label>规格 <input id="batchSpec" type="text" /></label>
-        <label>每条数量 <input id="batchQty" type="number" min="1" value="1" /></label>
-        <label>当前状态 <select id="batchStatus">${selOpts(STATUS_OPTIONS,"在库")}</select></label>
-        <label>存放位置 <input id="batchLocation" type="text" /></label>
-        <label>责任人 <input id="batchOwner" type="text" /></label>
+        <label>新增数量 <input id="batchCount" type="number" min="1" value="5" oninput="markDirty()" /></label>
+        <label>资产大类 <select id="batchMainCategory" onchange="syncBatchSub();markDirty()">${renderMainOpts(defMainCode())}</select></label>
+        <label>资产子类 <select id="batchSubCategory" onchange="markDirty()"></select></label>
+        <label>品牌 <input id="batchBrand" type="text" oninput="markDirty()" /></label>
+        <label>型号 <input id="batchModel" type="text" oninput="markDirty()" /></label>
+        <label>规格 <input id="batchSpec" type="text" oninput="markDirty()" /></label>
+        <label>每条数量 <input id="batchQty" type="number" min="1" value="1" oninput="markDirty()" /></label>
+        <label>当前状态 <select id="batchStatus" onchange="markDirty()">${selOpts(STATUS_OPTIONS,"在库")}</select></label>
+        <label>存放位置 <input id="batchLocation" type="text" oninput="markDirty()" /></label>
+        <label>责任人 <input id="batchOwner" type="text" oninput="markDirty()" /></label>
         <label></label>
-        <label style="grid-column:1 / -1;">备注 <textarea id="batchNote" rows="3"></textarea></label>`;
+        <label style="grid-column:1 / -1;">备注 <textarea id="batchNote" rows="3" oninput="markDirty()"></textarea></label>`;
     syncBatchSub();
     document.getElementById("batchMask").style.display="flex";
 }
@@ -1108,7 +1197,7 @@ function syncBatchSub(){
     el.innerHTML=list.map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
     if(list[0])el.value=list[0].code;
 }
-function closeBatchModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("batchMask").style.display="none"}
+function closeBatchModal(e){if(e&&e.target!==e.currentTarget)return;if(formDirty&&!confirm("表单有未保存的修改，确定关闭吗？"))return;document.getElementById("batchMask").style.display="none";formDirty=false}
 function confirmBatchAdd(){
     const count=Math.max(1,parseInt(document.getElementById("batchCount").value||"1",10));
     const mc=document.getElementById("batchMainCategory")?.value||defMainCode();
@@ -1212,6 +1301,50 @@ function exportFilteredJSON(){downloadText("ledger_filtered","json",JSON.stringi
 function exportFilteredCSV(){downloadText("ledger_filtered","csv",rowsToCSV(sorted(getFiltered())),"text/csv;charset=utf-8",true)}
 function triggerImportJSON(){document.getElementById("jsonFile").value="";document.getElementById("jsonFile").click()}
 function triggerImportCSV(){document.getElementById("csvFile").value="";document.getElementById("csvFile").click()}
+
+/* ── Import Preview ── */
+function showImportPreview(rowsData, type, rawData){
+    pendingImport={rows:rowsData, type, rawData};
+    document.getElementById("importPreviewTitle").textContent=`导入预览 — ${type}`;
+    document.getElementById("importPreviewMeta").innerHTML=`共 <span>${rowsData.length}</span> 条记录 | 格式：${type} | 请确认数据无误后点击"确认导入"`;
+    const cols=CSV_HEADERS;
+    const keys=CSV_KEYS;
+    const preview=rowsData.slice(0,50);
+    document.getElementById("importPreviewTable").innerHTML=`<table><thead><tr>${cols.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${preview.map(r=>`<tr>${keys.map(k=>`<td>${esc((r[k]??"").toString())}</td>`).join("")}</tr>`).join("")}${rowsData.length>50?`<tr><td colspan="${cols.length}" style="text-align:center;color:var(--muted);padding:8px;">… 还有 ${rowsData.length-50} 条未显示</td></tr>`:""}</tbody></table>`;
+    document.getElementById("importPreviewMask").style.display="flex";
+}
+function closeImportPreview(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("importPreviewMask").style.display="none";pendingImport=null}
+function confirmImport(){
+    if(!pendingImport)return;
+    const {rows:importRows, rawData}=pendingImport;
+    rows=normRows(importRows);
+    if(rawData?.trash)trash=normTrash(rawData.trash);
+    if(rawData?.logs)logs=normLogs(rawData.logs);
+    if(rawData?.snapshots)snapshots=normSnaps(rawData.snapshots);
+    migrateAll();ensureUniqueIds();sortRows();
+    pushSnapshot(`导入${pendingImport.type}`);saveState();renderAll();
+    toast(`成功导入 ${importRows.length} 条记录`,"success");
+    closeImportPreview();
+}
+
+/* ── Excel Export (.xls 格式，Excel可直接打开) ── */
+function exportExcel(list, prefix){
+    const headers=CSV_HEADERS, keys=CSV_KEYS;
+    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>资产台账</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>td{border:1px solid #ccc;padding:4px 8px;}th{background:#0f172a;color:#fff;padding:6px 8px;}</style></head><body><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${list.map(r=>`<tr>${keys.map(k=>`<td>${esc((r[k]??"").toString())}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
+    downloadText(prefix,"xls",html,"application/vnd.ms-excel",true);
+}
+function exportAllExcel(){exportExcel(sorted(rows),"ledger_all")}
+function exportFilteredExcel(){exportExcel(sorted(getFiltered()),"ledger_filtered")}
+
+/* ── Batch Status Change ── */
+function batchSetStatus(status){
+    if(!selectedSet.size)return;
+    const targets=rows.filter(r=>selectedSet.has(r.uid));
+    if(!confirm(`确定将选中的 ${targets.length} 条记录状态改为"${status}"吗？`))return;
+    targets.forEach(r=>{const old=r.status;r.status=status;addLog("批量状态变更",r,"",{status:{old,new:status}})});
+    saveState();renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();
+    toast(`已将 ${targets.length} 条记录状态改为"${status}"`,"success");
+}
 
 /* ================================================================
    FILE SYSTEM ACCESS API (微盘/备份)
@@ -1324,7 +1457,7 @@ function setupKeyboard(){
         else if(ctrl&&e.key==="s"){e.preventDefault();saveNow()}
         else if(ctrl&&e.key==="z"){e.preventDefault();if(snapshots.length>0){rollbackSnapshot(0)}else{alert("没有可撤销的快照")}}
         else if(e.key==="Delete"||e.key==="Del"){if(selectedSet.size>0){e.preventDefault();moveSelToTrash()}}
-        else if(e.key==="Escape"){closeRowModal();closeBatchModal();closeBulkEditModal();closeTrashModal();closeLabelPrint();clearSel();document.querySelectorAll("details").forEach(d=>d.open=false)}
+        else if(e.key==="Escape"){closeRowModal();closeBatchModal();closeBulkEditModal();closeTrashModal();closeLabelPrint();closeImportPreview();clearSel();document.querySelectorAll("details").forEach(d=>d.open=false)}
     });
 }
 
@@ -1333,17 +1466,17 @@ function setupKeyboard(){
    ================================================================ */
 document.getElementById("jsonFile").addEventListener("change",async e=>{
     const file=e.target.files[0];if(!file)return;const text=await file.text();let data;
-    try{data=safeJson(text)}catch(err){alert("JSON解析失败："+err.message);return}
-    const list=data.rows||data||[];if(!confirm(`确认导入 ${Array.isArray(list)?list.length:0} 条记录？`))return;
-    rows=normRows(Array.isArray(list)?list:[]);if(data.trash)trash=normTrash(data.trash);if(data.logs)logs=normLogs(data.logs);if(data.snapshots)snapshots=normSnaps(data.snapshots);
-    migrateAll();ensureUniqueIds();sortRows();pushSnapshot("导入JSON");saveState();renderAll();alert("导入成功");
+    try{data=safeJson(text)}catch(err){toast("JSON解析失败："+err.message,"error");return}
+    const list=Array.isArray(data?.rows)?data.rows:(Array.isArray(data)?data:[]);
+    if(!list.length){toast("JSON文件中没有有效数据","warn");return}
+    showImportPreview(normRows(list),"JSON",data);
 });
 document.getElementById("csvFile").addEventListener("change",async e=>{
-    const file=e.target.files[0];if(!file)return;const text=await file.text();const table=parseCSV(text);if(table.length<2){alert("CSV无效");return}
+    const file=e.target.files[0];if(!file)return;const text=await file.text();const table=parseCSV(text);if(table.length<2){toast("CSV文件无效","error");return}
     const hdr=table[0],idx=n=>hdr.indexOf(n);
     const list=table.slice(1).map(r=>({uid:uid(),id:r[idx("台账编号")]||nextNo(),assetMainName:r[idx("资产大类")]||"",assetSubName:r[idx("资产子类")]||"",brand:r[idx("品牌")]||"",model:r[idx("型号")]||"",spec:r[idx("规格")]||"",qty:r[idx("数量")]||"1",sn:r[idx("序列号")]||"",check:r[idx("检测结果")]||"待测",status:r[idx("当前状态")]||"待检测",location:r[idx("存放位置")]||"",date:r[idx("入库日期")]||"",owner:r[idx("责任人")]||"",note:r[idx("备注")]||"",source:"",assetMainCode:"",assetSubCode:"",type:"",machineClass:""}));
-    if(!confirm(`确认导入 ${list.length} 条记录？`))return;
-    rows=normRows(list);migrateAll();ensureUniqueIds();sortRows();pushSnapshot("导入CSV");saveState();renderAll();alert("导入成功");
+    if(!list.length){toast("CSV文件中没有数据行","warn");return}
+    showImportPreview(normRows(list),"CSV",null);
 });
 
 /* ================================================================
