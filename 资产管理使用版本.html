@@ -92,9 +92,6 @@ button:active { transform: translateY(0) }
 .btn-purple:hover { background: #ede9fe }
 .btn-cancel { background: #fff; color: #334155; border: 1px solid #cbd5e1 }
 .btn-cancel:hover { background: #f8fafc }
-.ledger-sort-btn { display: inline-flex; align-items: center; justify-content: center; padding: 9px 12px; min-width: 110px; }
-.ledger-sort-btn.sort-active { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; box-shadow: 0 4px 12px rgba(29,78,216,.10); }
-.ledger-sort-btn.sort-active:hover { background: #dbeafe }
 .mini-btn { padding: 6px 9px; border-radius: 8px; font-size: 11px; font-weight: 800 }
 
 /* ── Quick Filter Pills ── */
@@ -426,9 +423,6 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
             <div><div class="title">TI部资产管理总表</div><div class="meta">支持多选批量操作、列显示自定义。修改后自动保存。</div></div>
             <div class="table-head-actions no-print">
                 <button class="btn-primary" onclick="addRow()">新增一行</button>
-                <button class="btn-secondary ledger-sort-btn" id="ledgerSortBtn" onclick="toggleSortOrder()">
-                    <span id="ledgerSortText">编号：正序</span>
-                </button>
                 <button class="btn-soft" onclick="openBatchModal()">批量新增</button>
                 <button class="btn-soft" onclick="toggleColVis()" id="colVisBtn">⚙ 列设置</button>
             </div>
@@ -481,32 +475,32 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
 </div>
 
 <!-- ─── MODALS ─── -->
-<div id="rowMask" class="mask" onclick="closeRowModal(event)"><div class="modal" onclick="event.stopPropagation()">
+<div id="rowMask" class="mask"RowModal(event)"><div class="modal">
     <div class="modal-head"><h3 id="rowModalTitle">新增资产</h3><button class="btn-danger" onclick="closeRowModal()">关闭</button></div>
     <div class="form-grid" id="rowFormGrid"></div>
     <div class="modal-actions"><button class="btn-secondary" onclick="closeRowModal()">取消</button><button class="btn-primary" onclick="saveRowModal()">保存</button></div>
 </div></div>
 
-<div id="batchMask" class="mask" onclick="closeBatchModal(event)"><div class="modal" onclick="event.stopPropagation()">
+<div id="batchMask" class="mask"BatchModal(event)"><div class="modal">
     <div class="modal-head"><h3>批量新增</h3><button class="btn-danger" onclick="closeBatchModal()">关闭</button></div>
     <div class="form-grid" id="batchFormGrid"></div>
     <div class="modal-actions"><button class="btn-secondary" onclick="closeBatchModal()">取消</button><button class="btn-primary" onclick="confirmBatchAdd()">确认批量新增</button></div>
 </div></div>
 
-<div id="bulkEditMask" class="mask" onclick="closeBulkEditModal(event)"><div class="modal" onclick="event.stopPropagation()">
+<div id="bulkEditMask" class="mask"BulkEditModal(event)"><div class="modal">
     <div class="modal-head"><h3>批量修改</h3><button class="btn-danger" onclick="closeBulkEditModal()">关闭</button></div>
     <div class="hint" style="margin-bottom:12px;">留空或选择"保持不变"则不修改；只对已选中的记录生效。</div>
     <div class="form-grid" id="bulkFormGrid"></div>
     <div class="modal-actions"><button class="btn-secondary" onclick="closeBulkEditModal()">取消</button><button class="btn-primary" onclick="applyBulkEdit()">应用批量修改</button></div>
 </div></div>
 
-<div id="trashMask" class="mask" onclick="closeTrashModal(event)"><div class="modal" onclick="event.stopPropagation()">
+<div id="trashMask" class="mask"TrashModal(event)"><div class="modal">
     <div class="modal-head"><h3>回收站管理</h3><button class="btn-danger" onclick="closeTrashModal()">关闭</button></div>
     <div class="table-wrap" style="max-height:60vh;"><table style="min-width:1200px;"><thead><tr><th style="width:120px;">编号</th><th style="width:130px;">大类</th><th style="width:130px;">子类</th><th style="width:120px;">品牌</th><th style="width:160px;">型号</th><th style="width:110px;">状态</th><th style="width:180px;">删除时间</th><th style="width:180px;">操作</th></tr></thead><tbody id="trashModalBody"></tbody></table></div>
 </div></div>
 
 <!-- Import Preview Modal -->
-<div id="importPreviewMask" class="mask" onclick="closeImportPreview(event)"><div class="modal" onclick="event.stopPropagation()" style="width:min(1400px,100%);">
+<div id="importPreviewMask" class="mask"ImportPreview(event)"><div class="modal" onclick="event.stopPropagation()" style="width:min(1400px,100%);">
     <div class="modal-head"><h3 id="importPreviewTitle">导入预览</h3><button class="btn-danger" onclick="closeImportPreview()">关闭</button></div>
     <div class="import-meta" id="importPreviewMeta"></div>
     <div class="preview-table-wrap" id="importPreviewTable"></div>
@@ -768,9 +762,8 @@ function sorted(list){
 function toggleSort(colKey){
     if(sortKey===colKey){sortAsc=!sortAsc}else{sortKey=colKey;sortAsc=true}
     if(colKey==="id")sortRows();
-    renderTable();renderStats();renderCharts();updateSortBtn();updateCountInfo();
+    renderTable();renderStats();renderCharts();updateCountInfo();
 }
-function toggleLedgerSort(){sortKey="id";toggleSort("id")}
 
 /* ================================================================
    STORAGE
@@ -920,7 +913,7 @@ function renderTable(){
     });
     if(!filtered.length)body.innerHTML=`<tr><td colspan="${visCols.length+1}" style="padding:16px;text-align:center;color:#64748b;">没有匹配的记录</td></tr>`;
     const dupIds=getDupIds();if(dupIds.length)setSyncInfo(`⚠ 重复编号：${dupIds.join(", ")}`);
-    updateSortBtn();updatePillCounts();
+    updatePillCounts();
 }
 function renderCell(r,col){
     const v=r[col.key]??"";
@@ -995,12 +988,6 @@ function renderSafeHistory(){
 function updateCountInfo(){
     const filtered=getFiltered();
     document.getElementById("countInfo").textContent=`当前显示 ${filtered.length} 条 / 共 ${rows.length} 条`;
-}
-function updateSortBtn(){
-    const btn=document.getElementById("ledgerSortBtn"),txt=document.getElementById("ledgerSortText");
-    if(!btn)return;btn.classList.add("sort-active");
-    const col=COLUMNS.find(c=>c.key===sortKey)||{label:"编号"};
-    if(txt)txt.textContent=`${col.label}：${sortAsc?"正序":"倒序"}`;
 }
 function selectionBar(){
     const bar=document.getElementById("bulkBar"),title=document.getElementById("bulkBarTitle"),act=document.getElementById("bulkBarActions");
@@ -1140,9 +1127,7 @@ function openRowModal(mode="add",uidValue=null){
         else{el.value=mode==="add"&&key==="id"?reserveNo():(row?.[key]??(key==="qty"?"1":""))}
     });
 }
-function closeRowModal(e){
-    if(e&&e.target!==e.currentTarget)return;
-    if(formDirty&&!confirm("表单有未保存的修改，确定关闭吗？"))return;
+function closeRowModal(){
     document.getElementById("rowMask").style.display="none";
     if(modalMode==="add")releaseNo(document.getElementById("rowId")?.value);
     formDirty=false;editingUid=null;
@@ -1197,7 +1182,7 @@ function syncBatchSub(){
     el.innerHTML=list.map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
     if(list[0])el.value=list[0].code;
 }
-function closeBatchModal(e){if(e&&e.target!==e.currentTarget)return;if(formDirty&&!confirm("表单有未保存的修改，确定关闭吗？"))return;document.getElementById("batchMask").style.display="none";formDirty=false}
+function closeBatchModal(){document.getElementById("batchMask").style.display="none";formDirty=false}
 function confirmBatchAdd(){
     const count=Math.max(1,parseInt(document.getElementById("batchCount").value||"1",10));
     const mc=document.getElementById("batchMainCategory")?.value||defMainCode();
@@ -1232,7 +1217,7 @@ function syncBulkSub(){
     if(!mc){el.innerHTML='<option value="">保持不变</option>';return}
     el.innerHTML='<option value="">保持不变</option>'+getSubs(mc).map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
 }
-function closeBulkEditModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("bulkEditMask").style.display="none"}
+function closeBulkEditModal(){document.getElementById("bulkEditMask").style.display="none"}
 function applyBulkEdit(){
     const mc=document.getElementById("bulkMainCategory").value,sc=document.getElementById("bulkSubCategory").value;
     const status=document.getElementById("bulkStatus").value,loc=document.getElementById("bulkLocation").value.trim();
@@ -1250,7 +1235,7 @@ function applyBulkEdit(){
    TRASH MANAGEMENT
    ================================================================ */
 function openTrashModal(){document.getElementById("trashMask").style.display="flex";renderTrash()}
-function closeTrashModal(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("trashMask").style.display="none"}
+function closeTrashModal(){document.getElementById("trashMask").style.display="none"}
 function restoreTrash(uidValue){const idx=trash.findIndex(r=>r.uid===uidValue);if(idx<0)return;const row=trash[idx];if(isDupId(row.id))row.id=nextNo();rows.push(clone(row));trash.splice(idx,1);sortRows();addLog("恢复",row,"从回收站恢复");saveState();renderAll()}
 function permDelete(uidValue){const idx=trash.findIndex(r=>r.uid===uidValue);if(idx<0)return;const row=trash[idx];if(!confirm(`确定彻底删除 ${row.id} 吗？不可恢复。`))return;trash.splice(idx,1);addLog("彻底删除",row);saveState();renderAll()}
 function emptyTrash(){if(!trash.length){alert("回收站已空");return}if(!confirm(`确定清空 ${trash.length} 条吗？`))return;trash=[];addLog("清空回收站",{id:"SYSTEM"});saveState();renderAll()}
@@ -1313,7 +1298,7 @@ function showImportPreview(rowsData, type, rawData){
     document.getElementById("importPreviewTable").innerHTML=`<table><thead><tr>${cols.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${preview.map(r=>`<tr>${keys.map(k=>`<td>${esc((r[k]??"").toString())}</td>`).join("")}</tr>`).join("")}${rowsData.length>50?`<tr><td colspan="${cols.length}" style="text-align:center;color:var(--muted);padding:8px;">… 还有 ${rowsData.length-50} 条未显示</td></tr>`:""}</tbody></table>`;
     document.getElementById("importPreviewMask").style.display="flex";
 }
-function closeImportPreview(e){if(e&&e.target!==e.currentTarget)return;document.getElementById("importPreviewMask").style.display="none";pendingImport=null}
+function closeImportPreview(){document.getElementById("importPreviewMask").style.display="none";pendingImport=null}
 function confirmImport(){
     if(!pendingImport)return;
     const {rows:importRows, rawData}=pendingImport;
@@ -1417,7 +1402,7 @@ async function saveNow(){
     try{pushSnapshot("立即保存");ensureUniqueIds();sortRows();const ok=saveState();renderAll();refreshFolderStates();let bok=true;if(backupDirHandle)bok=await saveToBackupFile();
         if(!ok)setSyncInfo("本地缓存写入有警告");else setSyncInfo(bok?(backupDirHandle?"已保存并备份":"已保存"):"已保存，备份失败")}catch(e){alert("保存失败："+e.message);setSyncInfo("保存失败："+e.message)}
 }
-function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updateSortBtn();updatePillCounts()}
+function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts()}
 function resetDemo(){
     if(!confirm("确认恢复示例数据？当前数据将被覆盖。"))return;
     rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];selectedSet.clear();idReserveSet.clear();safeRemoteVersion=0;
@@ -1440,7 +1425,6 @@ function syncStatusFilter(){
     const el=document.getElementById("statusFilter");if(!el)return;
     el.innerHTML='<option value="">全部状态</option>'+STATUS_OPTIONS.map(s=>`<option value="${s}">${s}</option>`).join("");
 }
-function toggleSortOrder(){sortAsc=!sortAsc;renderTable();renderStats();renderCharts();updateSortBtn();updateCountInfo()}
 
 /* ================================================================
    KEYBOARD SHORTCUTS
