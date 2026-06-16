@@ -491,32 +491,32 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
 </div>
 
 <!-- ─── MODALS ─── -->
-<div id="rowMask" class="mask"RowModal(event)"><div class="modal">
+<div id="rowMask" class="mask"><div class="modal">
     <div class="modal-head"><h3 id="rowModalTitle">新增资产</h3><button class="btn-danger" onclick="closeModal('rowMask')">关闭</button></div>
     <div class="form-grid" id="rowFormGrid"></div>
     <div class="modal-actions"><button class="btn-secondary" onclick="closeModal('rowMask')">取消</button><button class="btn-primary" onclick="saveRowModal()">保存</button></div>
 </div></div>
 
-<div id="batchMask" class="mask"BatchModal(event)"><div class="modal">
+<div id="batchMask" class="mask"><div class="modal">
     <div class="modal-head"><h3>批量新增</h3><button class="btn-danger" onclick="closeModal('batchMask')">关闭</button></div>
     <div class="form-grid" id="batchFormGrid"></div>
     <div class="modal-actions"><button class="btn-secondary" onclick="closeModal('batchMask')">取消</button><button class="btn-primary" onclick="confirmBatchAdd()">确认批量新增</button></div>
 </div></div>
 
-<div id="bulkEditMask" class="mask"BulkEditModal(event)"><div class="modal">
+<div id="bulkEditMask" class="mask"><div class="modal">
     <div class="modal-head"><h3>批量修改</h3><button class="btn-danger" onclick="closeModal('bulkEditMask')">关闭</button></div>
     <div class="hint" style="margin-bottom:12px;">留空或选择"保持不变"则不修改；只对已选中的记录生效。</div>
     <div class="form-grid" id="bulkFormGrid"></div>
     <div class="modal-actions"><button class="btn-secondary" onclick="closeModal('bulkEditMask')">取消</button><button class="btn-primary" onclick="applyBulkEdit()">应用批量修改</button></div>
 </div></div>
 
-<div id="trashMask" class="mask"TrashModal(event)"><div class="modal">
+<div id="trashMask" class="mask"><div class="modal">
     <div class="modal-head"><h3>回收站管理</h3><button class="btn-danger" onclick="closeModal('trashMask')">关闭</button></div>
     <div class="table-wrap" style="max-height:60vh;"><table style="min-width:1200px;"><thead><tr><th style="width:120px;">编号</th><th style="width:130px;">大类</th><th style="width:130px;">子类</th><th style="width:120px;">品牌</th><th style="width:160px;">型号</th><th style="width:110px;">状态</th><th style="width:180px;">删除时间</th><th style="width:180px;">操作</th></tr></thead><tbody id="trashModalBody"></tbody></table></div>
 </div></div>
 
 <!-- Import Preview Modal -->
-<div id="importPreviewMask" class="mask"ImportPreview(event)"><div class="modal" onclick="event.stopPropagation()" style="width:min(1400px,100%);">
+<div id="importPreviewMask" class="mask"><div class="modal" style="width:min(1400px,100%);">
     <div class="modal-head"><h3 id="importPreviewTitle">导入预览</h3><button class="btn-danger" onclick="closeModal('importPreviewMask')">关闭</button></div>
     <div class="import-meta" id="importPreviewMeta"></div>
     <div class="preview-table-wrap" id="importPreviewTable"></div>
