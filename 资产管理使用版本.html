@@ -96,6 +96,31 @@ body.dark .cat-mgr-chip input { color: #60a5fa; }
 body.dark .cat-mgr-chip input:focus { border-bottom-color: #60a5fa; }
 body.dark .cat-mgr-chip .move-select { background: #1e293b; border-color: #475569; color: #94a3b8; }
 body.dark .cat-mgr-add { background: #1a3a2a; color: #4ade80; border-color: #166534; }
+
+/* ── Custom Select ── */
+.csel { position: relative; display: inline-block; vertical-align: middle; }
+.csel-trigger { display: flex; align-items: center; justify-content: space-between; gap: 4px; cursor: pointer; user-select: none; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; color: var(--text); background: var(--surface); border: 1px solid var(--line); min-width: 60px; transition: .15s; white-space: nowrap; }
+.csel-trigger:hover { border-color: var(--line-strong); background: #f8fafc; }
+.csel-trigger .arrow { font-size: 8px; opacity: .4; margin-left: 2px; }
+.csel.open .csel-trigger { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(29,78,216,.1); }
+.csel-drop { position: absolute; top: calc(100% + 4px); left: 0; z-index: 9999; min-width: 100%; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-2); padding: 6px; display: none; max-height: 260px; overflow: auto; }
+.csel.open .csel-drop { display: block; }
+.csel-opt { display: block; width: 100%; text-align: left; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--text); background: none; border: none; cursor: pointer; white-space: nowrap; }
+.csel-opt:hover { background: #f1f5f9; }
+.csel-opt.active { background: #eff6ff; color: #1d4ed8; }
+body.dark .csel-trigger { background: #1e293b; border-color: #475569; color: #e2e8f0; }
+body.dark .csel-trigger:hover { background: #334155; }
+body.dark .csel-drop { background: #1e293b; border-color: #475569; }
+body.dark .csel-opt { color: #e2e8f0; }
+body.dark .csel-opt:hover { background: #334155; }
+body.dark .csel-opt.active { background: #1e3a5f; color: #60a5fa; }
+.csel-cell { flex: 1; }
+.csel-cell .csel-trigger { border: none; border-radius: 0; padding: 0 10px; height: 42px; font-size: 12px; background: transparent; min-width: 0; width: 100%; }
+.csel-cell .csel-trigger:hover { background: #f8fbff; }
+.csel-cell .csel-drop { left: 0; min-width: 140px; }
+body.dark .csel-cell .csel-trigger { background: transparent; }
+body.dark .csel-cell .csel-trigger:hover { background: #253449; }
+body.compact .csel-cell .csel-trigger { height: 30px; font-size: 11px; padding: 0 6px; }
 * { box-sizing: border-box }
 html, body { height: 100% }
 body {
@@ -1118,6 +1143,7 @@ function renderTable(){
     if(!filtered.length)body.innerHTML=`<tr><td colspan="${visCols.length+1}" style="padding:16px;text-align:center;color:#64748b;">没有匹配的记录</td></tr>`;
     const dupIds=getDupIds();if(dupIds.length)setSyncInfo(`⚠ 重复编号：${dupIds.join(", ")}`);
     updatePillCounts();
+    setTimeout(()=>makeCustomSelects(document.getElementById("tableBody")),10);
 }
 function renderCell(r,col){
     const v=r[col.key]??"";
@@ -1139,6 +1165,7 @@ function updateCellInDOM(uidValue,field,value){
     tr.innerHTML=`<td style="text-align:center;width:52px;"><input type="checkbox" ${selectedSet.has(uidValue)?"checked":""} onchange="toggleRowSel('${uidValue}',this.checked)" /></td>`+
         visCols.map(c=>renderCell(row,c)).join("");
     if(selectedSet.has(uidValue))tr.classList.add("selected");else tr.classList.remove("selected");
+    setTimeout(()=>makeCustomSelects(tr),10);
 }
 
 /* ================================================================
@@ -1319,6 +1346,7 @@ function openRowModal(mode="add",uidValue=null){
     document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
     document.getElementById("rowMask").style.display="flex";
     document.getElementById("rowModalTitle").textContent=mode==="edit"?"编辑资产":"新增资产";
+    setTimeout(()=>makeCustomSelects(document.getElementById("rowFormGrid")),10);
     const row=uidValue?rows.find(r=>r.uid===uidValue):null;
     ROW_FORM_FIELDS.forEach(([elId,key,,type,opts])=>{
         const el=document.getElementById(elId);if(!el)return;
@@ -1378,6 +1406,7 @@ function openBatchModal(){
         <label style="grid-column:1 / -1;">备注 <textarea id="batchNote" rows="3" oninput="markDirty()"></textarea></label>`;
     syncBatchSub();
     document.getElementById("batchMask").style.display="flex";
+    setTimeout(()=>makeCustomSelects(document.getElementById("batchFormGrid")),10);
 }
 function syncBatchSub(){syncSubSelect("batchMainCategory","batchSubCategory",false)}
 function confirmBatchAdd(){
@@ -1407,6 +1436,7 @@ function openBulkEditModal(){
         <label>数量 <input id="bulkQty" type="number" min="1" placeholder="留空不改" /></label>
         <label style="grid-column:1 / -1;">备注 <textarea id="bulkNote" rows="3" placeholder="留空不改"></textarea></label>`;
     document.getElementById("bulkEditMask").style.display="flex";
+    setTimeout(()=>makeCustomSelects(document.getElementById("bulkFormGrid")),10);
 }
 function syncBulkSub(){
     const mc=document.getElementById("bulkMainCategory").value;
@@ -1647,6 +1677,38 @@ document.getElementById("csvFile").addEventListener("change",async e=>{
 });
 
 /* ================================================================
+   CUSTOM SELECT COMPONENT
+   ================================================================ */
+function makeCustomSelects(root=document){
+    root.querySelectorAll("select:not(.csel-native)").forEach(el=>{
+        if(el.closest(".csel"))return; // already wrapped
+        const isCell=el.closest("td")||el.classList.contains("select-cell");
+        const wrap=document.createElement("span");wrap.className="csel"+(isCell?" csel-cell":"");
+        el.classList.add("csel-native");el.style.display="none";
+        el.parentNode.insertBefore(wrap,el);wrap.appendChild(el);
+        // trigger
+        const trig=document.createElement("span");trig.className="csel-trigger";
+        trig.innerHTML=`<span class="csel-label">${el.options[el.selectedIndex]?.text||""}</span><span class="arrow">▼</span>`;
+        // dropdown
+        const drop=document.createElement("div");drop.className="csel-drop";
+        const refreshOpts=()=>{
+            drop.innerHTML="";
+            [...el.options].forEach(opt=>{
+                const o=document.createElement("button");o.className="csel-opt"+(opt.selected?" active":"");
+                o.textContent=opt.text;o.type="button";
+                o.onmousedown=e=>{e.preventDefault();el.value=opt.value;refreshOpts();trig.querySelector(".csel-label").textContent=opt.text;el.dispatchEvent(new Event("change",{bubbles:true}));closeAllDrops()};
+                drop.appendChild(o);
+            });
+        };
+        refreshOpts();
+        trig.onclick=e=>{e.stopPropagation();const was=wrap.classList.contains("open");closeAllDrops();if(!was){wrap.classList.add("open");drop.scrollTop=0}};
+        wrap.appendChild(trig);wrap.appendChild(drop);
+    });
+}
+function closeAllDrops(){document.querySelectorAll(".csel.open").forEach(w=>w.classList.remove("open"))}
+document.addEventListener("click",e=>{if(!e.target.closest(".csel"))closeAllDrops()});
+
+/* ================================================================
    INIT
    ================================================================ */
 const CSV_COLS=COLUMNS.filter(c=>c.key!=="assetMainCode"&&c.key!=="assetSubCode");
@@ -1664,6 +1726,7 @@ window.addEventListener("load",async()=>{
     document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
     await initFolders();
     renderAll();
+    makeCustomSelects(); // toolbar & modal selects
     setupKeyboard();
     updatePillCounts();
 });
