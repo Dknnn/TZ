@@ -744,6 +744,7 @@ function addMainCategory(){
 function syncMainFilterOpts(){
     const el=document.getElementById("mainCategoryFilter");if(!el)return;
     el.innerHTML='<option value="">全部大类</option>'+CATEGORY_TREE.map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
+    refreshSelect(el);
 }
 
 const STATUSES = [
@@ -1342,6 +1343,7 @@ function syncSubSelect(mainId, subId, keepVal=true){
     const cur=keepVal?el.value||"":"";el.innerHTML=renderSubOpts(mc,cur);
     if(!keepVal){const subs=getSubs(mc);if(subs[0])el.value=subs[0].code}
     else if(cur&&!getSubs(mc).some(x=>x.code===cur))el.value="";
+    refreshSelect(el);
 }
 function syncRowSubOpts(){syncSubSelect("rowMainCategory","rowSubCategory")}
 function openRowModal(mode="add",uidValue=null){
@@ -1444,8 +1446,9 @@ function openBulkEditModal(){
 function syncBulkSub(){
     const mc=document.getElementById("bulkMainCategory").value;
     const el=document.getElementById("bulkSubCategory");if(!el)return;
-    if(!mc){el.innerHTML='<option value="">保持不变</option>';return}
+    if(!mc){el.innerHTML='<option value="">保持不变</option>';refreshSelect(el);return}
     el.innerHTML='<option value="">保持不变</option>'+getSubs(mc).map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
+    refreshSelect(el);
 }
 function syncSubFilter(){syncSubSelect("mainCategoryFilter","subCategoryFilter",false)}
 function applyBulkEdit(){
@@ -1710,6 +1713,15 @@ function makeCustomSelects(root=document){
 }
 function closeAllDrops(){document.querySelectorAll(".csel.open").forEach(w=>w.classList.remove("open"))}
 document.addEventListener("click",e=>{if(!e.target.closest(".csel"))closeAllDrops()});
+function unwrapSelect(el){
+    const wrap=el.closest(".csel");if(!wrap)return;
+    el.classList.remove("csel-native");el.style.display="";
+    wrap.parentNode.insertBefore(el,wrap);wrap.remove();
+}
+function refreshSelect(el){
+    unwrapSelect(el);
+    setTimeout(()=>makeCustomSelects(el.parentNode),10);
+}
 
 /* ================================================================
    INIT
