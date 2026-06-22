@@ -325,6 +325,22 @@ body.dark .more-menu-list button:hover { background: #334155; }
 .shortcut-kbd { display: inline-block; padding: 1px 6px; border-radius: 4px; background: #e5e7eb; color: #374151; font-size: 10px; font-weight: 700; font-family: monospace; margin: 0 2px; }
 body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
 
+/* ── Pagination ── */
+.pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--line); }
+.page-info { font-size: 12px; color: var(--muted); font-weight: 600; }
+.page-size-select { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.page-size-select select { padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 12px; cursor: pointer; }
+.page-btns { display: flex; gap: 4px; align-items: center; }
+.page-btn { padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.page-btn:hover:not(:disabled) { background: #f1f5f9; border-color: var(--line-strong); }
+.page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-ellipsis { padding: 0 4px; color: var(--muted); }
+body.dark .page-btn { background: var(--surface); border-color: var(--line); color: var(--text); }
+body.dark .page-btn:hover:not(:disabled) { background: #334155; }
+body.dark .page-btn.active { background: var(--primary); color: #fff; }
+body.dark .page-size-select select { background: var(--surface); border-color: var(--line); color: var(--text); }
+
 /* Toast */
 .toast-container { position: fixed; top: 18px; right: 18px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .toast { padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.16); animation: toastIn .3s ease; pointer-events: auto; max-width: 400px; cursor: pointer; }
@@ -441,6 +457,35 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
         <div class="field"><label>资产子类</label><select id="subCategoryFilter" onchange="onFilterChange()"><option value="">全部子类</option></select></div>
         <div class="field"><label>当前操作人</label><input id="operatorInput" type="text" value="系统" oninput="saveAllDebounced();renderLogs();" /></div>
         <div class="field"><label>同步状态</label><div class="small" id="syncInfo">未选择微盘同步文件夹</div></div>
+        <div class="field" style="display:flex;align-items:flex-end;"><button class="btn-soft" onclick="toggleAdvancedSearch()">🔍 高级搜索</button></div>
+    </div>
+
+    <!-- ADVANCED SEARCH PANEL -->
+    <div id="advancedSearchPanel" class="panel no-print" style="display:none;margin-top:12px;">
+        <div class="panel-head">
+            <div class="title">🔍 高级搜索</div>
+            <div class="actions">
+                <button class="btn-soft" onclick="resetAdvancedSearch()">重置</button>
+                <button class="btn-primary" onclick="applyAdvancedSearch()">应用筛选</button>
+                <button class="btn-cancel" onclick="toggleAdvancedSearch()">关闭</button>
+            </div>
+        </div>
+        <div style="padding:14px;">
+            <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+                <label>品牌 <input id="advBrand" type="text" placeholder="模糊匹配" /></label>
+                <label>型号 <input id="advModel" type="text" placeholder="模糊匹配" /></label>
+                <label>规格 <input id="advSpec" type="text" placeholder="模糊匹配" /></label>
+                <label>序列号 <input id="advSn" type="text" placeholder="精确匹配" /></label>
+                <label>存放位置 <input id="advLocation" type="text" placeholder="模糊匹配" /></label>
+                <label>责任人 <input id="advOwner" type="text" placeholder="模糊匹配" /></label>
+                <label>入库日期 从 <input id="advDateFrom" type="date" /></label>
+                <label>入库日期 到 <input id="advDateTo" type="date" /></label>
+                <label>检测结果 <select id="advCheck"><option value="">全部</option><option value="待测">待测</option><option value="正常">正常</option><option value="异常">异常</option></select></label>
+                <label>数量 从 <input id="advQtyFrom" type="number" min="1" placeholder="最小" /></label>
+                <label>数量 到 <input id="advQtyTo" type="number" min="1" placeholder="最大" /></label>
+                <label>备注 <input id="advNote" type="text" placeholder="模糊匹配" /></label>
+            </div>
+        </div>
     </div>
 
     <!-- QUICK FILTERS -->
@@ -508,6 +553,7 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
         </div>
         <div class="col-vis-panel no-print" id="colVisPanel" style="display:none;"></div>
         <div class="table-wrap"><table id="ledgerTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div>
+        <div id="paginationContainer"></div>
         <div class="table-footer">
             <div>建议：删除先进回收站；涉及报废出售丢失等状态请保留日志。<span id="saveFreshness" style="color:var(--muted-2);margin-left:10px;font-size:11px;"></span></div>
             <div id="countInfo">当前显示 0 条 / 共 0 条</div>
@@ -624,6 +670,21 @@ const FILE_NAME = "ledger.json";
 const SAFE_BACKUP_PREFIX = "ledger_backup";
 const MAX_LOGS_KEEP = 180;
 const MAX_SNAPSHOTS_KEEP = 10;
+
+// IndexedDB 配置
+const IDB_DB_NAME = "ti_asset_manager";
+const IDB_DB_VERSION = 1;
+const IDB_STORES = {
+    rows: "asset_rows",
+    trash: "asset_trash",
+    logs: "asset_logs",
+    snapshots: "asset_snapshots",
+    config: "asset_config"
+};
+
+// 分页配置
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
+const DEFAULT_PAGE_SIZE = 50;
 
 const DEFAULT_CATEGORY_TREE = [
     { code:"SYSTEM_UNIT", name:"整机设备", subs:[
@@ -816,6 +877,14 @@ let quickFilter = "all";
 let formDirty = false;          // 弹窗表单是否有未保存修改
 let pendingImport = null;       // 待确认的导入数据
 
+// 分页状态
+let currentPage = 1;
+let pageSize = DEFAULT_PAGE_SIZE;
+let filteredCache = [];  // 缓存筛选结果
+
+// IndexedDB 实例
+let idb = null;
+
 /* ================================================================
    UTILITIES
    ================================================================ */
@@ -830,6 +899,142 @@ const sumQty = list => list.reduce((a,r)=>a+(parseFloat(r.qty)||0),0);
 const todayYmd = (d=new Date()) => { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0"); return `${y}${m}${day}`; };
 const statusCls = s => (STATUS_MAP[s]||{cls:"s-wait"}).cls;
 const getOp = () => (document.getElementById("operatorInput")?.value||"").trim()||"系统";
+
+/* ================================================================
+   IndexedDB 存储层
+   ================================================================ */
+function openIDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_DB_NAME, IDB_DB_VERSION);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            Object.values(IDB_STORES).forEach(storeName => {
+                if (!db.objectStoreNames.contains(storeName)) {
+                    db.createObjectStore(storeName, { keyPath: 'id' });
+                }
+            });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function idbGet(storeName, key) {
+    if (!idb) idb = await openIDB();
+    return new Promise((resolve, reject) => {
+        const tx = idb.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result?.value ?? null);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function idbSet(storeName, key, value) {
+    if (!idb) idb = await openIDB();
+    return new Promise((resolve, reject) => {
+        const tx = idb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const req = store.put({ id: key, value });
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function idbDelete(storeName, key) {
+    if (!idb) idb = await openIDB();
+    return new Promise((resolve, reject) => {
+        const tx = idb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const req = store.delete(key);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+// 从 localStorage 迁移到 IndexedDB
+async function migrateToIDB() {
+    try {
+        const stores = [
+            { ls: STORAGE_KEY, idb: IDB_STORES.rows },
+            { ls: STORAGE_TRASH, idb: IDB_STORES.trash },
+            { ls: STORAGE_LOGS, idb: IDB_STORES.logs },
+            { ls: STORAGE_SNAPSHOTS, idb: IDB_STORES.snapshots }
+        ];
+        for (const { ls, idb: storeName } of stores) {
+            const data = localStorage.getItem(ls);
+            if (data) {
+                await idbSet(storeName, 'main', JSON.parse(data));
+                localStorage.removeItem(ls); // 迁移后删除localStorage
+            }
+        }
+        // 迁移配置
+        const configs = [STORAGE_OPERATOR, STORAGE_EXPORT_SEQ, STORAGE_DRAFT, STORAGE_COL_VIS];
+        for (const key of configs) {
+            const data = localStorage.getItem(key);
+            if (data) {
+                await idbSet(IDB_STORES.config, key, JSON.parse(data));
+                localStorage.removeItem(key);
+            }
+        }
+        console.log('数据已迁移到 IndexedDB');
+    } catch (e) {
+        console.warn('迁移到 IndexedDB 失败，继续使用 localStorage:', e);
+    }
+}
+
+/* ================================================================
+   数据校验
+   ================================================================ */
+const validators = {
+    id: (value) => {
+        if (!value) return '编号不能为空';
+        if (!/^PA-\d{4,}$/.test(value)) return '编号格式不正确，须为 PA-0001';
+        return null;
+    },
+    qty: (value) => {
+        if (!value) return null; // 数量可以为空
+        const num = parseInt(value, 10);
+        if (isNaN(num) || num < 1) return '数量必须为正整数';
+        if (String(num) !== String(value)) return '数量必须为整数';
+        return null;
+    },
+    date: (value) => {
+        if (!value) return null; // 日期可以为空
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return '日期格式不正确';
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return '日期无效';
+        return null;
+    },
+    status: (value) => {
+        if (!value) return '状态不能为空';
+        if (!STATUS_OPTIONS.includes(value)) return '状态值无效';
+        return null;
+    },
+    assetMainCode: (value) => {
+        if (!value) return '资产大类不能为空';
+        return null;
+    },
+    assetSubCode: (value) => {
+        if (!value) return '资产子类不能为空';
+        return null;
+    }
+};
+
+function validateField(field, value) {
+    const validator = validators[field];
+    if (validator) return validator(value);
+    return null;
+}
+
+function validateRow(row) {
+    const errors = {};
+    for (const [field, value] of Object.entries(row)) {
+        const error = validateField(field, value);
+        if (error) errors[field] = error;
+    }
+    return Object.keys(errors).length > 0 ? errors : null;
+}
 
 /* ── Toast ── */
 function toast(msg, type="info", action=null, actionLabel=""){
@@ -998,28 +1203,88 @@ function toggleSort(colKey){
 }
 
 /* ================================================================
-   STORAGE
+   STORAGE (IndexedDB + localStorage fallback)
    ================================================================ */
-function loadState(){
+async function loadState(){
     try{
-        rows=normRows(safeJson(lsGet(STORAGE_KEY,"[]"))||[]);trash=normTrash(safeJson(lsGet(STORAGE_TRASH,"[]"))||[]);
-        logs=normLogs(safeJson(lsGet(STORAGE_LOGS,"[]"))||[]);snapshots=normSnaps(safeJson(lsGet(STORAGE_SNAPSHOTS,"[]"))||[]);
-        exportSeqMap=safeJson(lsGet(STORAGE_EXPORT_SEQ,"{}"))||{};
-        colVis=safeJson(lsGet(STORAGE_COL_VIS,"{}"))||{};
-        const op=lsGet(STORAGE_OPERATOR,"");if(op)document.getElementById("operatorInput").value=op;
+        // 尝试从 IndexedDB 加载
+        const [rowsData, trashData, logsData, snapsData, configData] = await Promise.all([
+            idbGet(IDB_STORES.rows, 'main'),
+            idbGet(IDB_STORES.trash, 'main'),
+            idbGet(IDB_STORES.logs, 'main'),
+            idbGet(IDB_STORES.snapshots, 'main'),
+            idbGet(IDB_STORES.config, 'all')
+        ]);
+
+        if (rowsData) {
+            rows = normRows(rowsData);
+            trash = normTrash(trashData || []);
+            logs = normLogs(logsData || []);
+            snapshots = normSnaps(snapsData || []);
+        } else {
+            // IndexedDB 无数据，尝试 localStorage
+            rows = normRows(safeJson(lsGet(STORAGE_KEY,"[]"))||[]);
+            trash = normTrash(safeJson(lsGet(STORAGE_TRASH,"[]"))||[]);
+            logs = normLogs(safeJson(lsGet(STORAGE_LOGS,"[]"))||[]);
+            snapshots = normSnaps(safeJson(lsGet(STORAGE_SNAPSHOTS,"[]"))||[]);
+            // 迁移到 IndexedDB
+            await migrateToIDB();
+        }
+
+        if (configData) {
+            exportSeqMap = configData.exportSeq || {};
+            colVis = configData.colVis || {};
+            if (configData.operator) document.getElementById("operatorInput").value = configData.operator;
+        } else {
+            exportSeqMap = safeJson(lsGet(STORAGE_EXPORT_SEQ,"{}"))||{};
+            colVis = safeJson(lsGet(STORAGE_COL_VIS,"{}"))||{};
+            const op = lsGet(STORAGE_OPERATOR,"");
+            if(op) document.getElementById("operatorInput").value = op;
+        }
+
         if(!rows.length){rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid())}
-    }catch(e){rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];exportSeqMap={}}
+    }catch(e){
+        console.error('加载数据失败:', e);
+        rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];exportSeqMap={}
+    }
     migrateAll();ensureUniqueIds();sortRows();
 }
-function saveState(){
+
+async function saveState(){
     try{
-        const ok=lsSet(STORAGE_KEY,JSON.stringify(rows))&&lsSet(STORAGE_TRASH,JSON.stringify(trash))&&lsSet(STORAGE_LOGS,JSON.stringify(logs))&&lsSet(STORAGE_OPERATOR,getOp())&&lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap))&&lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));
-        lsSet(STORAGE_SNAPSHOTS,JSON.stringify(snapshots));
-        let draft={rows,trash,logs:logs.slice(0,50),snapshots:snapshots.slice(0,3),safeRemoteVersion,updatedAt:new Date().toISOString(),updatedBy:getOp()};
-        lsSet(STORAGE_DRAFT,JSON.stringify(draft));
-        return ok;
-    }catch(e){setSyncInfo("保存失败："+e.message);return false}
+        const config = {
+            operator: getOp(),
+            exportSeq: exportSeqMap,
+            colVis: colVis,
+            draft: {
+                rows, trash, logs: logs.slice(0,50),
+                snapshots: snapshots.slice(0,3),
+                safeRemoteVersion,
+                updatedAt: new Date().toISOString(),
+                updatedBy: getOp()
+            }
+        };
+
+        await Promise.all([
+            idbSet(IDB_STORES.rows, 'main', rows),
+            idbSet(IDB_STORES.trash, 'main', trash),
+            idbSet(IDB_STORES.logs, 'main', logs),
+            idbSet(IDB_STORES.snapshots, 'main', snapshots),
+            idbSet(IDB_STORES.config, 'all', config)
+        ]);
+
+        return true;
+    }catch(e){
+        console.error('保存到 IndexedDB 失败，回退到 localStorage:', e);
+        // 回退到 localStorage
+        try{
+            const ok=lsSet(STORAGE_KEY,JSON.stringify(rows))&&lsSet(STORAGE_TRASH,JSON.stringify(trash))&&lsSet(STORAGE_LOGS,JSON.stringify(logs))&&lsSet(STORAGE_OPERATOR,getOp())&&lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap))&&lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));
+            lsSet(STORAGE_SNAPSHOTS,JSON.stringify(snapshots));
+            return ok;
+        }catch(e2){setSyncInfo("保存失败："+e2.message);return false}
+    }
 }
+
 function setSyncInfo(t){const el=document.getElementById("syncInfo");if(el)el.textContent=t||"";clearTimeout(saveStateTimer);saveStateTimer=setTimeout(()=>refreshFolderStates(),2500)}
 
 /* ================================================================
@@ -1045,7 +1310,7 @@ function pushSnapshot(src="自动保存",nt="自动保存"){
 }
 
 /* ================================================================
-   FILTERING
+   FILTERING & PAGINATION
    ================================================================ */
 function getFiltered(){
     const kw=document.getElementById("searchInput").value.trim().toLowerCase();
@@ -1069,8 +1334,75 @@ function getFiltered(){
     else if(quickFilter==="dup_sn"){const m=new Map();rows.forEach(r=>{const sn=(r.sn||"").trim();if(!sn||sn==="无")return;m.set(sn,(m.get(sn)||0)+1)});const dupSns=new Set([...m.entries()].filter(([,c])=>c>1).map(([sn])=>sn));result=result.filter(r=>dupSns.has((r.sn||"").trim()))}
     return result;
 }
+
+// 获取当前页的数据
+function getPagedData(filtered) {
+    const totalPages = Math.ceil(filtered.length / pageSize);
+    if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return {
+        data: filtered.slice(start, end),
+        total: filtered.length,
+        totalPages,
+        currentPage,
+        pageSize
+    };
+}
+
+// 渲染分页控件
+function renderPagination(total, totalPages) {
+    const container = document.getElementById('paginationContainer');
+    if (!container) return;
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+    let html = '<div class="pagination">';
+    html += `<span class="page-info">共 ${total} 条，第 ${currentPage}/${totalPages} 页</span>`;
+    html += '<div class="page-size-select">每页 <select onchange="changePageSize(this.value)">';
+    PAGE_SIZE_OPTIONS.forEach(s => {
+        html += `<option value="${s}" ${s === pageSize ? 'selected' : ''}>${s} 条</option>`;
+    });
+    html += '</select></div>';
+    html += '<div class="page-btns">';
+    html += `<button class="page-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>首页</button>`;
+    html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+
+    // 显示页码按钮
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) html += '<span class="page-ellipsis">...</span>';
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    }
+    if (endPage < totalPages) html += '<span class="page-ellipsis">...</span>';
+
+    html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+    html += `<button class="page-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末页</button>`;
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+function goToPage(page) {
+    currentPage = page;
+    renderTable();
+    // 滚动到表格顶部
+    document.querySelector('.table-wrap')?.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function changePageSize(size) {
+    pageSize = parseInt(size, 10);
+    currentPage = 1;
+    renderTable();
+}
+
 function applyQuickFilter(filter){
     quickFilter=filter;
+    currentPage = 1; // 重置到第一页
     document.querySelectorAll(".pill-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter===filter));
     if(filter==="all"){document.getElementById("statusFilter").value="";document.getElementById("searchInput").value=""}
     else if(filter==="in_stock")document.getElementById("statusFilter").value="在库";
@@ -1079,7 +1411,7 @@ function applyQuickFilter(filter){
     else{document.getElementById("statusFilter").value=""}
     renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts();
 }
-function onFilterChange(){quickFilter="all";document.querySelectorAll(".pill-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter==="all"));renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts()}
+function onFilterChange(){quickFilter="all";currentPage=1;document.querySelectorAll(".pill-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter==="all"));renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts()}
 function updatePillCounts(){
     const counts={
         in_stock:rows.filter(r=>r.status==="在库").length,
@@ -1096,6 +1428,77 @@ function updatePillCounts(){
         b.textContent=cnt!==undefined?`${labels[f]||f} (${cnt})`:labels[f]||f;
     });
 }
+
+/* ================================================================
+   ADVANCED SEARCH
+   ================================================================ */
+let advancedSearchActive = false;
+
+function toggleAdvancedSearch() {
+    const panel = document.getElementById('advancedSearchPanel');
+    advancedSearchActive = !advancedSearchActive;
+    panel.style.display = advancedSearchActive ? 'block' : 'none';
+}
+
+function resetAdvancedSearch() {
+    document.getElementById('advBrand').value = '';
+    document.getElementById('advModel').value = '';
+    document.getElementById('advSpec').value = '';
+    document.getElementById('advSn').value = '';
+    document.getElementById('advLocation').value = '';
+    document.getElementById('advOwner').value = '';
+    document.getElementById('advDateFrom').value = '';
+    document.getElementById('advDateTo').value = '';
+    document.getElementById('advCheck').value = '';
+    document.getElementById('advQtyFrom').value = '';
+    document.getElementById('advQtyTo').value = '';
+    document.getElementById('advNote').value = '';
+    currentPage = 1;
+    renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts();
+}
+
+function applyAdvancedSearch() {
+    currentPage = 1;
+    renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts();
+    toast('高级搜索已应用', 'success');
+}
+
+// 扩展 getFiltered 函数以支持高级搜索
+const _originalGetFiltered = getFiltered;
+getFiltered = function() {
+    let result = _originalGetFiltered.call(this);
+
+    if (!advancedSearchActive) return result;
+
+    const brand = document.getElementById('advBrand').value.trim().toLowerCase();
+    const model = document.getElementById('advModel').value.trim().toLowerCase();
+    const spec = document.getElementById('advSpec').value.trim().toLowerCase();
+    const sn = document.getElementById('advSn').value.trim();
+    const location = document.getElementById('advLocation').value.trim().toLowerCase();
+    const owner = document.getElementById('advOwner').value.trim().toLowerCase();
+    const dateFrom = document.getElementById('advDateFrom').value;
+    const dateTo = document.getElementById('advDateTo').value;
+    const check = document.getElementById('advCheck').value;
+    const qtyFrom = parseInt(document.getElementById('advQtyFrom').value, 10);
+    const qtyTo = parseInt(document.getElementById('advQtyTo').value, 10);
+    const note = document.getElementById('advNote').value.trim().toLowerCase();
+
+    return result.filter(r => {
+        if (brand && !(r.brand || '').toLowerCase().includes(brand)) return false;
+        if (model && !(r.model || '').toLowerCase().includes(model)) return false;
+        if (spec && !(r.spec || '').toLowerCase().includes(spec)) return false;
+        if (sn && (r.sn || '').trim() !== sn) return false;
+        if (location && !(r.location || '').toLowerCase().includes(location)) return false;
+        if (owner && !(r.owner || '').toLowerCase().includes(owner)) return false;
+        if (dateFrom && r.date && r.date < dateFrom) return false;
+        if (dateTo && r.date && r.date > dateTo) return false;
+        if (check && r.check !== check) return false;
+        if (!isNaN(qtyFrom) && qtyFrom > 0 && (parseInt(r.qty, 10) || 0) < qtyFrom) return false;
+        if (!isNaN(qtyTo) && qtyTo > 0 && (parseInt(r.qty, 10) || 0) > qtyTo) return false;
+        if (note && !(r.note || '').toLowerCase().includes(note)) return false;
+        return true;
+    });
+};
 
 /* ================================================================
    COLUMN VISIBILITY
@@ -1132,21 +1535,24 @@ function renderTable(){
     renderTableHead();
     const body=document.getElementById("tableBody");body.innerHTML="";
     const filtered=sorted(getFiltered());
+    const { data: pageData, total, totalPages } = getPagedData(filtered);
     const visCols=COLUMNS.filter(c=>isColVis(c.key));
-    document.getElementById("countInfo").textContent=`当前显示 ${filtered.length} 条 / 共 ${rows.length} 条`;
-    const selAll=document.getElementById("selectAllBox");if(selAll)selAll.checked=filtered.length>0&&filtered.every(r=>selectedSet.has(r.uid));
+
+    document.getElementById("countInfo").textContent=`当前显示 ${pageData.length} 条 / 共 ${filtered.length} 条 (共 ${rows.length} 条)`;
+    const selAll=document.getElementById("selectAllBox");if(selAll)selAll.checked=pageData.length>0&&pageData.every(r=>selectedSet.has(r.uid));
     selectionBar();
 
-    filtered.forEach(r=>{
+    pageData.forEach(r=>{
         const tr=document.createElement("tr");tr.dataset.uid=r.uid;if(selectedSet.has(r.uid))tr.classList.add("selected");
         tr.innerHTML=`<td style="text-align:center;width:52px;"><input type="checkbox" ${selectedSet.has(r.uid)?"checked":""} onchange="toggleRowSel('${r.uid}',this.checked)" /></td>`+
             visCols.map(c=>renderCell(r,c)).join("");
         tr.addEventListener("contextmenu",e=>showCtxMenu(e,r.uid));
         body.appendChild(tr);
     });
-    if(!filtered.length)body.innerHTML=`<tr><td colspan="${visCols.length+1}" style="padding:16px;text-align:center;color:#64748b;">没有匹配的记录</td></tr>`;
+    if(!pageData.length)body.innerHTML=`<tr><td colspan="${visCols.length+1}" style="padding:16px;text-align:center;color:#64748b;">没有匹配的记录</td></tr>`;
     const dupIds=getDupIds();if(dupIds.length)setSyncInfo(`⚠ 重复编号：${dupIds.join(", ")}`);
     updatePillCounts();
+    renderPagination(total, totalPages);
     setTimeout(()=>makeCustomSelects(document.getElementById("tableBody")),10);
 }
 function renderCell(r,col){
@@ -1240,10 +1646,19 @@ function updateField(uidValue,field,value){
     const row=rows.find(r=>r.uid===uidValue);if(!row)return;
     const oldVal=row[field];const newVal=(value??"").toString().trim();
     if(oldVal===newVal)return;
+
+    // 数据校验
+    const error = validateField(field, newVal);
+    if (error) {
+        flashCell(uidValue,field);
+        toast(error,"warn");
+        setCellInvalid(uidValue,field,true);
+        return;
+    }
+    setCellInvalid(uidValue,field,false);
+
     if(field==="id"){
-        if(!/^PA-\d+$/.test(newVal)){flashCell(uidValue,field);toast("编号格式不正确，须为 PA-0001","warn");setCellInvalid(uidValue,field,true);renderTable();return}
         if(isDupId(newVal,uidValue)){flashCell(uidValue,field);toast(`编号 ${newVal} 已存在，请换一个编号`,"warn");setCellInvalid(uidValue,field,true);renderTable();return}
-        setCellInvalid(uidValue,field,false);
         row[field]=newVal;releaseNo(oldVal);
         addLog("编号修改",row,"",{id:{old:oldVal,new:newVal}});
         sortRows();saveState();renderTable();renderStats();renderCharts();updateCountInfo();return;
@@ -1372,7 +1787,15 @@ function saveRowModal(){
     let committed=false;
     try{
         const data={};ROW_FORM_FIELDS.forEach(([elId,key])=>{const el=document.getElementById(elId);data[key]=el?el.value.trim():""});
-        if(!/^PA-\d+$/.test(data.id)){alert("编号格式不正确，须为 PA-0001");return}
+
+        // 数据校验
+        const errors = validateRow(data);
+        if (errors) {
+            const firstError = Object.values(errors)[0];
+            toast(firstError, "warn");
+            return;
+        }
+
         if(modalMode==="add"){
             if(isDupId(data.id)){data.id=nextNo();document.getElementById("rowId").value=data.id}
             const main=getCat(data.assetMainCode||defMainCode()),sub=getSub(main.code,data.assetSubCode||defSubCode(main.code));
@@ -1737,7 +2160,16 @@ window.addEventListener("load",async()=>{
     initDark();initDensity();
     /* FAB scroll */
     window.addEventListener("scroll",()=>{const fab=document.getElementById("fabTop");if(fab)fab.classList.toggle("visible",window.scrollY>400)});
-    loadState();
+
+    // 初始化 IndexedDB
+    try {
+        idb = await openIDB();
+        console.log('IndexedDB 初始化成功');
+    } catch (e) {
+        console.warn('IndexedDB 初始化失败，使用 localStorage:', e);
+    }
+
+    await loadState();
     document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
     await initFolders();
     renderAll();
