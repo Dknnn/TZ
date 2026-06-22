@@ -243,7 +243,8 @@ tbody tr.selected td { background: #eef6ff !important }
 /* ── Status Tags ── */
 .status-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; }
 .s-in { background:#dcfce7;color:#166534 } .s-wait { background:#ffedd5;color:#9a3412 }
-.s-use { background:#dbeafe;color:#1d4ed8 } .s-scrap { background:#e5e7eb;color:#334155 }
+.s-use { background:#dbeafe;color:#1d4ed8 } .s-borrow { background:#cffafe;color:#0e7490 }
+.s-repair { background:#fff7ed;color:#9a3412 } .s-scrap { background:#e5e7eb;color:#334155 }
 .s-sell { background:#ede9fe;color:#6d28d9 } .s-lost { background:#fee2e2;color:#b91c1c }
 
 .table-footer { padding: 11px 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 12px; background: #fff; }
@@ -452,7 +453,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     <!-- TOOLBAR -->
     <div class="toolbar no-print">
         <div class="field"><label>🔍 搜索 (Ctrl+F)</label><input id="searchInput" type="text" placeholder="搜索编号、品牌、型号、位置、备注..." oninput="onFilterChange()" /></div>
-        <div class="field"><label>状态筛选</label><select id="statusFilter" onchange="onFilterChange()"><option value="">全部状态</option><option value="在库">在库</option><option value="待检测">待检测</option><option value="已领用">已领用</option><option value="已报废">已报废</option><option value="已出售">已出售</option><option value="已丢失">已丢失</option></select></div>
+        <div class="field"><label>状态筛选</label><select id="statusFilter" onchange="onFilterChange()"><option value="">全部状态</option><option value="在库">在库</option><option value="待检测">待检测</option><option value="已领用">已领用</option><option value="已借出">已借出</option><option value="维修中">维修中</option><option value="已报废">已报废</option><option value="已出售">已出售</option><option value="已丢失">已丢失</option></select></div>
         <div class="field"><label>资产大类</label><select id="mainCategoryFilter" onchange="syncSubFilter();onFilterChange()"><option value="">全部大类</option><option value="SYSTEM_UNIT">整机设备</option><option value="PARTS_UNIT">计算部件</option><option value="OFFICE_UNIT">外设与办公</option><option value="NETWORK_UNIT">网络与通讯</option><option value="TOOLS_UNIT">运维工具与仪表</option><option value="MATERIAL_UNIT">备品备件与耗材</option><option value="OTHER_UNIT">其他</option></select></div>
         <div class="field"><label>资产子类</label><select id="subCategoryFilter" onchange="onFilterChange()"><option value="">全部子类</option></select></div>
         <div class="field"><label>当前操作人</label><input id="operatorInput" type="text" value="系统" oninput="saveAllDebounced();renderLogs();" /></div>
@@ -495,6 +496,8 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
         <button class="pill-btn" data-filter="in_stock" onclick="applyQuickFilter('in_stock')">在库</button>
         <button class="pill-btn" data-filter="pending" onclick="applyQuickFilter('pending')">待检测</button>
         <button class="pill-btn" data-filter="in_use" onclick="applyQuickFilter('in_use')">已领用</button>
+        <button class="pill-btn" data-filter="borrowed" onclick="applyQuickFilter('borrowed')">已借出</button>
+        <button class="pill-btn" data-filter="repairing" onclick="applyQuickFilter('repairing')">维修中</button>
         <span class="sep"></span>
         <button class="pill-btn" data-filter="my" onclick="applyQuickFilter('my')">👤 我的</button>
         <button class="pill-btn" data-filter="month" onclick="applyQuickFilter('month')">📅 本月入库</button>
@@ -584,6 +587,81 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
         </div>
     </details>
 
+    <!-- BORROW MANAGEMENT -->
+    <details class="fold-panel">
+        <summary class="fold-head"><span>📋 借用管理</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">资产借用登记、归还确认、借用历史查询。</div>
+                <div class="actions no-print">
+                    <button class="btn-soft" onclick="openBorrowModal()">新增借用</button>
+                    <button class="btn-soft" onclick="renderBorrowRecords()">刷新</button>
+                </div>
+            </div>
+            <div class="log-body"><table style="min-width:1200px;"><thead><tr>
+                <th style="width:120px;">借用编号</th>
+                <th style="width:120px;">资产编号</th>
+                <th style="width:100px;">借用人</th>
+                <th style="width:120px;">借用日期</th>
+                <th style="width:120px;">预计归还</th>
+                <th style="width:120px;">实际归还</th>
+                <th style="width:100px;">状态</th>
+                <th style="width:150px;">用途</th>
+                <th style="width:150px;">操作</th>
+            </tr></thead><tbody id="borrowBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <!-- REPAIR RECORDS -->
+    <details class="fold-panel">
+        <summary class="fold-head"><span>🔧 维修记录</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">资产维修登记、维修状态跟踪、维修历史查询。</div>
+                <div class="actions no-print">
+                    <button class="btn-soft" onclick="openRepairModal()">新增维修</button>
+                    <button class="btn-soft" onclick="renderRepairRecords()">刷新</button>
+                </div>
+            </div>
+            <div class="log-body"><table style="min-width:1200px;"><thead><tr>
+                <th style="width:120px;">维修编号</th>
+                <th style="width:120px;">资产编号</th>
+                <th style="width:100px;">维修类型</th>
+                <th style="width:120px;">送修日期</th>
+                <th style="width:120px;">完成日期</th>
+                <th style="width:100px;">状态</th>
+                <th style="width:100px;">费用</th>
+                <th style="width:100px;">维修人</th>
+                <th style="width:150px;">故障描述</th>
+                <th style="width:150px;">操作</th>
+            </tr></thead><tbody id="repairBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <!-- INVENTORY MANAGEMENT -->
+    <details class="fold-panel">
+        <summary class="fold-head"><span>📦 资产盘点</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">资产盘点计划、盘点执行、差异报告。</div>
+                <div class="actions no-print">
+                    <button class="btn-soft" onclick="startNewInventory()">开始盘点</button>
+                    <button class="btn-soft" onclick="renderInventoryRecords()">刷新</button>
+                </div>
+            </div>
+            <div class="log-body"><table style="min-width:1200px;"><thead><tr>
+                <th style="width:120px;">盘点编号</th>
+                <th style="width:120px;">计划日期</th>
+                <th style="width:120px;">执行日期</th>
+                <th style="width:100px;">盘点人</th>
+                <th style="width:100px;">状态</th>
+                <th style="width:100px;">资产总数</th>
+                <th style="width:100px;">差异项</th>
+                <th style="width:150px;">操作</th>
+            </tr></thead><tbody id="inventoryBody"></tbody></table></div>
+        </div>
+    </details>
+
     <!-- SAFE HISTORY -->
     <details class="fold-panel">
         <summary class="fold-head"><span>安全留痕 / 历史版本</span><span class="fold-tip">点击折叠</span></summary>
@@ -650,6 +728,20 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     <div id="labelContainer" class="label-grid"></div>
 </div></div>
 
+<!-- Borrow Modal -->
+<div id="borrowMask" class="mask"><div class="modal">
+    <div class="modal-head"><h3>📋 借用登记</h3><button class="btn-danger" onclick="closeBorrowModal()">关闭</button></div>
+    <div class="form-grid" id="borrowFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeBorrowModal()">取消</button><button class="btn-primary" onclick="saveBorrow()">确认借用</button></div>
+</div></div>
+
+<!-- Repair Modal -->
+<div id="repairMask" class="mask"><div class="modal">
+    <div class="modal-head"><h3>🔧 维修登记</h3><button class="btn-danger" onclick="closeRepairModal()">关闭</button></div>
+    <div class="form-grid" id="repairFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeRepairModal()">取消</button><button class="btn-primary" onclick="saveRepair()">确认登记</button></div>
+</div></div>
+
 <!-- ═══════════════ JAVASCRIPT ═══════════════ -->
 <script>
 /* ================================================================
@@ -673,13 +765,16 @@ const MAX_SNAPSHOTS_KEEP = 10;
 
 // IndexedDB 配置
 const IDB_DB_NAME = "ti_asset_manager";
-const IDB_DB_VERSION = 1;
+const IDB_DB_VERSION = 2;
 const IDB_STORES = {
     rows: "asset_rows",
     trash: "asset_trash",
     logs: "asset_logs",
     snapshots: "asset_snapshots",
-    config: "asset_config"
+    config: "asset_config",
+    borrows: "asset_borrows",
+    repairs: "asset_repairs",
+    inventory: "asset_inventory"
 };
 
 // 分页配置
@@ -812,6 +907,8 @@ const STATUSES = [
     {value:"在库", cls:"s-in", color:"#16a34a"},
     {value:"待检测", cls:"s-wait", color:"#f59e0b"},
     {value:"已领用", cls:"s-use", color:"#2563eb"},
+    {value:"已借出", cls:"s-borrow", color:"#0891b2"},
+    {value:"维修中", cls:"s-repair", color:"#ea580c"},
     {value:"已报废", cls:"s-scrap", color:"#64748b"},
     {value:"已出售", cls:"s-sell", color:"#8b5cf6"},
     {value:"已丢失", cls:"s-lost", color:"#ef4444"}
@@ -881,6 +978,15 @@ let pendingImport = null;       // 待确认的导入数据
 let currentPage = 1;
 let pageSize = DEFAULT_PAGE_SIZE;
 let filteredCache = [];  // 缓存筛选结果
+
+// 借用记录
+let borrowRecords = [];  // {id, assetId, borrower, borrowDate, expectedReturnDate, actualReturnDate, purpose, status, note}
+
+// 维修记录
+let repairRecords = [];  // {id, assetId, repairDate, repairType, description, cost, repairer, status, completionDate, note}
+
+// 盘点记录
+let inventoryRecords = [];  // {id, planDate, actualDate, operator, status, items: [{assetId, expected, actual, difference, note}]}
 
 // IndexedDB 实例
 let idb = null;
@@ -1208,12 +1314,15 @@ function toggleSort(colKey){
 async function loadState(){
     try{
         // 尝试从 IndexedDB 加载
-        const [rowsData, trashData, logsData, snapsData, configData] = await Promise.all([
+        const [rowsData, trashData, logsData, snapsData, configData, borrowsData, repairsData, inventoryData] = await Promise.all([
             idbGet(IDB_STORES.rows, 'main'),
             idbGet(IDB_STORES.trash, 'main'),
             idbGet(IDB_STORES.logs, 'main'),
             idbGet(IDB_STORES.snapshots, 'main'),
-            idbGet(IDB_STORES.config, 'all')
+            idbGet(IDB_STORES.config, 'all'),
+            idbGet(IDB_STORES.borrows, 'main'),
+            idbGet(IDB_STORES.repairs, 'main'),
+            idbGet(IDB_STORES.inventory, 'main')
         ]);
 
         if (rowsData) {
@@ -1221,12 +1330,18 @@ async function loadState(){
             trash = normTrash(trashData || []);
             logs = normLogs(logsData || []);
             snapshots = normSnaps(snapsData || []);
+            borrowRecords = borrowsData || [];
+            repairRecords = repairsData || [];
+            inventoryRecords = inventoryData || [];
         } else {
             // IndexedDB 无数据，尝试 localStorage
             rows = normRows(safeJson(lsGet(STORAGE_KEY,"[]"))||[]);
             trash = normTrash(safeJson(lsGet(STORAGE_TRASH,"[]"))||[]);
             logs = normLogs(safeJson(lsGet(STORAGE_LOGS,"[]"))||[]);
             snapshots = normSnaps(safeJson(lsGet(STORAGE_SNAPSHOTS,"[]"))||[]);
+            borrowRecords = [];
+            repairRecords = [];
+            inventoryRecords = [];
             // 迁移到 IndexedDB
             await migrateToIDB();
         }
@@ -1245,7 +1360,7 @@ async function loadState(){
         if(!rows.length){rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid())}
     }catch(e){
         console.error('加载数据失败:', e);
-        rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];exportSeqMap={}
+        rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];exportSeqMap={};borrowRecords=[];repairRecords=[];inventoryRecords=[]
     }
     migrateAll();ensureUniqueIds();sortRows();
 }
@@ -1270,7 +1385,10 @@ async function saveState(){
             idbSet(IDB_STORES.trash, 'main', trash),
             idbSet(IDB_STORES.logs, 'main', logs),
             idbSet(IDB_STORES.snapshots, 'main', snapshots),
-            idbSet(IDB_STORES.config, 'all', config)
+            idbSet(IDB_STORES.config, 'all', config),
+            idbSet(IDB_STORES.borrows, 'main', borrowRecords),
+            idbSet(IDB_STORES.repairs, 'main', repairRecords),
+            idbSet(IDB_STORES.inventory, 'main', inventoryRecords)
         ]);
 
         return true;
@@ -1408,6 +1526,8 @@ function applyQuickFilter(filter){
     else if(filter==="in_stock")document.getElementById("statusFilter").value="在库";
     else if(filter==="pending")document.getElementById("statusFilter").value="待检测";
     else if(filter==="in_use")document.getElementById("statusFilter").value="已领用";
+    else if(filter==="borrowed")document.getElementById("statusFilter").value="已借出";
+    else if(filter==="repairing")document.getElementById("statusFilter").value="维修中";
     else{document.getElementById("statusFilter").value=""}
     renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts();
 }
@@ -1417,11 +1537,13 @@ function updatePillCounts(){
         in_stock:rows.filter(r=>r.status==="在库").length,
         pending:rows.filter(r=>r.status==="待检测").length,
         in_use:rows.filter(r=>r.status==="已领用").length,
+        borrowed:rows.filter(r=>r.status==="已借出").length,
+        repairing:rows.filter(r=>r.status==="维修中").length,
         my:rows.filter(r=>r.owner===getOp()).length,
         dup_id:getDupIds().length,
         dup_sn:getDupSnCount()
     };
-    const labels={all:"全部",in_stock:"在库",pending:"待检测",in_use:"已领用",my:"👤 我的",month:"📅 本月入库",dup_id:"⚠ 重复编号",dup_sn:"⚠ 重复序列号"};
+    const labels={all:"全部",in_stock:"在库",pending:"待检测",in_use:"已领用",borrowed:"已借出",repairing:"维修中",my:"👤 我的",month:"📅 本月入库",dup_id:"⚠ 重复编号",dup_sn:"⚠ 重复序列号"};
     document.querySelectorAll(".pill-btn").forEach(b=>{
         const f=b.dataset.filter;
         const cnt=counts[f];
@@ -1499,6 +1621,338 @@ getFiltered = function() {
         return true;
     });
 };
+
+/* ================================================================
+   BORROW MANAGEMENT
+   ================================================================ */
+function generateBorrowId() {
+    const date = todayYmd();
+    const count = borrowRecords.filter(r => r.id.startsWith(`BR-${date}`)).length + 1;
+    return `BR-${date}-${String(count).padStart(3, '0')}`;
+}
+
+function openBorrowModal(assetId = '') {
+    const modal = document.getElementById('borrowMask');
+    const form = document.getElementById('borrowFormGrid');
+
+    const assetOptions = rows.filter(r => r.status === '在库').map(r =>
+        `<option value="${r.id}" ${r.id === assetId ? 'selected' : ''}>${r.id} - ${r.brand} ${r.model}</option>`
+    ).join('');
+
+    form.innerHTML = `
+        <label>借用编号 <input id="borrowId" type="text" value="${generateBorrowId()}" readonly style="background:#f5f5f5;" /></label>
+        <label>资产 <select id="borrowAssetId">${assetOptions}</select></label>
+        <label>借用人 <input id="borrower" type="text" value="${getOp()}" /></label>
+        <label>借用日期 <input id="borrowDate" type="date" value="${new Date().toISOString().split('T')[0]}" /></label>
+        <label>预计归还 <input id="expectedReturnDate" type="date" /></label>
+        <label>用途 <input id="borrowPurpose" type="text" placeholder="借用用途" /></label>
+        <label style="grid-column:1 / -1;">备注 <textarea id="borrowNote" rows="2" placeholder="备注信息"></textarea></label>
+    `;
+    modal.style.display = 'flex';
+}
+
+function closeBorrowModal() {
+    document.getElementById('borrowMask').style.display = 'none';
+}
+
+function saveBorrow() {
+    const data = {
+        id: document.getElementById('borrowId').value,
+        assetId: document.getElementById('borrowAssetId').value,
+        borrower: document.getElementById('borrower').value.trim(),
+        borrowDate: document.getElementById('borrowDate').value,
+        expectedReturnDate: document.getElementById('expectedReturnDate').value,
+        purpose: document.getElementById('borrowPurpose').value.trim(),
+        note: document.getElementById('borrowNote').value.trim(),
+        actualReturnDate: '',
+        status: '借用中'
+    };
+
+    if (!data.assetId || !data.borrower || !data.borrowDate) {
+        toast('请填写必填字段', 'warn');
+        return;
+    }
+
+    // 更新资产状态
+    const asset = rows.find(r => r.id === data.assetId);
+    if (asset) {
+        const oldStatus = asset.status;
+        asset.status = '已借出';
+        addLog('借用', asset, `${data.borrower} 借用`, { status: { old: oldStatus, new: '已借出' } });
+    }
+
+    borrowRecords.unshift(data);
+    addLog('借用登记', { id: data.id }, `${data.borrower} 借用 ${data.assetId}`);
+    saveState();
+    closeBorrowModal();
+    renderBorrowRecords();
+    renderTable();
+    renderStats();
+    toast(`借用成功：${data.assetId}`, 'success');
+}
+
+function returnBorrow(borrowId) {
+    const record = borrowRecords.find(r => r.id === borrowId);
+    if (!record) return;
+
+    if (!confirm(`确认归还 ${record.assetId}？`)) return;
+
+    record.actualReturnDate = new Date().toISOString().split('T')[0];
+    record.status = '已归还';
+
+    // 更新资产状态
+    const asset = rows.find(r => r.id === record.assetId);
+    if (asset) {
+        const oldStatus = asset.status;
+        asset.status = '在库';
+        addLog('归还', asset, `${record.borrower} 归还`, { status: { old: oldStatus, new: '在库' } });
+    }
+
+    addLog('归还登记', { id: record.id }, `${record.borrower} 归还 ${record.assetId}`);
+    saveState();
+    renderBorrowRecords();
+    renderTable();
+    renderStats();
+    toast(`归还成功：${record.assetId}`, 'success');
+}
+
+function renderBorrowRecords() {
+    const body = document.getElementById('borrowBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!borrowRecords.length) {
+        body.innerHTML = '<tr><td colspan="9" style="padding:16px;text-align:center;color:#6b7280;">暂无借用记录</td></tr>';
+        return;
+    }
+
+    borrowRecords.forEach(r => {
+        const statusCls = r.status === '借用中' ? 's-borrow' : 's-in';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.id)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.assetId)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.borrower)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.borrowDate)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.expectedReturnDate || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.actualReturnDate || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;"><span class="status-tag ${statusCls}">${esc(r.status)}</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.purpose || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">
+                ${r.status === '借用中' ? `<button class="mini-btn btn-green" onclick="returnBorrow('${r.id}')">归还</button>` : ''}
+            </td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+/* ================================================================
+   REPAIR RECORDS
+   ================================================================ */
+function generateRepairId() {
+    const date = todayYmd();
+    const count = repairRecords.filter(r => r.id.startsWith(`RP-${date}`)).length + 1;
+    return `RP-${date}-${String(count).padStart(3, '0')}`;
+}
+
+function openRepairModal(assetId = '') {
+    const modal = document.getElementById('repairMask');
+    const form = document.getElementById('repairFormGrid');
+
+    const assetOptions = rows.map(r =>
+        `<option value="${r.id}" ${r.id === assetId ? 'selected' : ''}>${r.id} - ${r.brand} ${r.model}</option>`
+    ).join('');
+
+    form.innerHTML = `
+        <label>维修编号 <input id="repairId" type="text" value="${generateRepairId()}" readonly style="background:#f5f5f5;" /></label>
+        <label>资产 <select id="repairAssetId">${assetOptions}</select></label>
+        <label>维修类型 <select id="repairType"><option value="故障维修">故障维修</option><option value="定期保养">定期保养</option><option value="升级改造">升级改造</option></select></label>
+        <label>送修日期 <input id="repairDate" type="date" value="${new Date().toISOString().split('T')[0]}" /></label>
+        <label>维修人 <input id="repairer" type="text" value="${getOp()}" /></label>
+        <label>预计费用 <input id="repairCost" type="number" min="0" step="0.01" placeholder="元" /></label>
+        <label style="grid-column:1 / -1;">故障描述 <textarea id="repairDesc" rows="2" placeholder="故障现象描述"></textarea></label>
+        <label style="grid-column:1 / -1;">备注 <textarea id="repairNote" rows="2" placeholder="备注信息"></textarea></label>
+    `;
+    modal.style.display = 'flex';
+}
+
+function closeRepairModal() {
+    document.getElementById('repairMask').style.display = 'none';
+}
+
+function saveRepair() {
+    const data = {
+        id: document.getElementById('repairId').value,
+        assetId: document.getElementById('repairAssetId').value,
+        repairType: document.getElementById('repairType').value,
+        repairDate: document.getElementById('repairDate').value,
+        repairer: document.getElementById('repairer').value.trim(),
+        cost: parseFloat(document.getElementById('repairCost').value) || 0,
+        description: document.getElementById('repairDesc').value.trim(),
+        note: document.getElementById('repairNote').value.trim(),
+        completionDate: '',
+        status: '维修中'
+    };
+
+    if (!data.assetId || !data.repairDate || !data.repairer) {
+        toast('请填写必填字段', 'warn');
+        return;
+    }
+
+    // 更新资产状态
+    const asset = rows.find(r => r.id === data.assetId);
+    if (asset) {
+        const oldStatus = asset.status;
+        asset.status = '维修中';
+        addLog('送修', asset, `${data.repairType}`, { status: { old: oldStatus, new: '维修中' } });
+    }
+
+    repairRecords.unshift(data);
+    addLog('维修登记', { id: data.id }, `${data.assetId} ${data.repairType}`);
+    saveState();
+    closeRepairModal();
+    renderRepairRecords();
+    renderTable();
+    renderStats();
+    toast(`维修登记成功：${data.assetId}`, 'success');
+}
+
+function completeRepair(repairId) {
+    const record = repairRecords.find(r => r.id === repairId);
+    if (!record) return;
+
+    if (!confirm(`确认 ${record.assetId} 维修完成？`)) return;
+
+    record.completionDate = new Date().toISOString().split('T')[0];
+    record.status = '已完成';
+
+    // 更新资产状态
+    const asset = rows.find(r => r.id === record.assetId);
+    if (asset) {
+        const oldStatus = asset.status;
+        asset.status = '在库';
+        asset.check = '正常';
+        addLog('维修完成', asset, `${record.repairType}`, { status: { old: oldStatus, new: '在库' } });
+    }
+
+    addLog('维修完成', { id: record.id }, `${record.assetId} 维修完成`);
+    saveState();
+    renderRepairRecords();
+    renderTable();
+    renderStats();
+    toast(`维修完成：${record.assetId}`, 'success');
+}
+
+function renderRepairRecords() {
+    const body = document.getElementById('repairBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!repairRecords.length) {
+        body.innerHTML = '<tr><td colspan="10" style="padding:16px;text-align:center;color:#6b7280;">暂无维修记录</td></tr>';
+        return;
+    }
+
+    repairRecords.forEach(r => {
+        const statusCls = r.status === '维修中' ? 's-repair' : 's-in';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.id)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.assetId)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.repairType)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.repairDate)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.completionDate || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;"><span class="status-tag ${statusCls}">${esc(r.status)}</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${r.cost ? `¥${r.cost.toFixed(2)}` : '-'}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.repairer)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.description || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">
+                ${r.status === '维修中' ? `<button class="mini-btn btn-green" onclick="completeRepair('${r.id}')">完成</button>` : ''}
+            </td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+/* ================================================================
+   INVENTORY MANAGEMENT
+   ================================================================ */
+function generateInventoryId() {
+    const date = todayYmd();
+    const count = inventoryRecords.filter(r => r.id.startsWith(`INV-${date}`)).length + 1;
+    return `INV-${date}-${String(count).padStart(3, '0')}`;
+}
+
+function startNewInventory() {
+    if (!confirm('开始新的资产盘点？将记录当前所有资产状态。')) return;
+
+    const inventory = {
+        id: generateInventoryId(),
+        planDate: new Date().toISOString().split('T')[0],
+        actualDate: new Date().toISOString().split('T')[0],
+        operator: getOp(),
+        status: '进行中',
+        totalAssets: rows.length,
+        differenceCount: 0,
+        items: rows.map(r => ({
+            assetId: r.id,
+            expected: r.status,
+            actual: '',
+            difference: '',
+            note: ''
+        }))
+    };
+
+    inventoryRecords.unshift(inventory);
+    addLog('资产盘点', { id: inventory.id }, `开始盘点，共 ${rows.length} 项资产`);
+    saveState();
+    renderInventoryRecords();
+    toast(`盘点已开始：${inventory.id}`, 'success');
+}
+
+function completeInventory(inventoryId) {
+    const inventory = inventoryRecords.find(r => r.id === inventoryId);
+    if (!inventory) return;
+
+    // 统计差异
+    const differences = inventory.items.filter(item => item.actual && item.actual !== item.expected);
+    inventory.differenceCount = differences.length;
+    inventory.status = '已完成';
+
+    addLog('盘点完成', { id: inventory.id }, `完成盘点，差异项：${differences.length}`);
+    saveState();
+    renderInventoryRecords();
+    toast(`盘点完成：${inventory.id}，差异项：${differences.length}`, 'success');
+}
+
+function renderInventoryRecords() {
+    const body = document.getElementById('inventoryBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!inventoryRecords.length) {
+        body.innerHTML = '<tr><td colspan="8" style="padding:16px;text-align:center;color:#6b7280;">暂无盘点记录</td></tr>';
+        return;
+    }
+
+    inventoryRecords.forEach(r => {
+        const statusCls = r.status === '进行中' ? 's-wait' : 's-in';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.id)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.planDate)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.actualDate || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.operator)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;"><span class="status-tag ${statusCls}">${esc(r.status)}</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${r.totalAssets}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${r.differenceCount || 0}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">
+                ${r.status === '进行中' ? `<button class="mini-btn btn-green" onclick="completeInventory('${r.id}')">完成</button>` : ''}
+            </td>
+        `;
+        body.appendChild(tr);
+    });
+}
 
 /* ================================================================
    COLUMN VISIBILITY
@@ -2056,7 +2510,7 @@ async function saveNow(){
     try{pushSnapshot("立即保存");ensureUniqueIds();sortRows();const ok=saveState();renderAll();refreshFolderStates();updateFreshness();let bok=true;if(backupDirHandle)bok=await saveToBackupFile();
         if(!ok)setSyncInfo("本地缓存写入有警告");else setSyncInfo(bok?(backupDirHandle?"已保存并备份":"已保存"):"已保存，备份失败")}catch(e){toast("保存失败："+e.message,"error");setSyncInfo("保存失败："+e.message)}
 }
-function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts()}
+function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts();renderBorrowRecords();renderRepairRecords();renderInventoryRecords()}
 function resetDemo(){
     if(!confirm("确认恢复示例数据？当前数据将被覆盖。"))return;
     rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];selectedSet.clear();idReserveSet.clear();safeRemoteVersion=0;
