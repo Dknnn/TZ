@@ -663,21 +663,6 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
         </div>
     </details>
 
-    <!-- DEPRECIATION SUMMARY -->
-    <details class="fold-panel" id="depreciationPanel">
-        <summary class="fold-head"><span>📊 折旧统计</span><span class="fold-tip">点击折叠</span></summary>
-        <div class="fold-body">
-            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
-                <div class="meta">资产折旧汇总、价值分析。</div>
-                <div class="actions no-print">
-                    <button class="btn-soft" onclick="renderDepreciationSummary()">刷新</button>
-                    <button class="btn-soft" onclick="exportDepreciationReport()">导出报表</button>
-                </div>
-            </div>
-            <div id="depreciationSummary"></div>
-        </div>
-    </details>
-
     <!-- INVENTORY MANAGEMENT -->
     <details class="fold-panel" id="inventoryPanel">
         <summary class="fold-head"><span>📦 资产盘点</span><span class="fold-tip">点击折叠</span></summary>
@@ -977,10 +962,6 @@ const COLUMNS = [
     {key:"status", label:"当前状态", width:"110px", sortable:false, type:"status", defaultVis:true, required:true},
     {key:"location", label:"存放位置", width:"150px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"date", label:"入库日期", width:"130px", sortable:false, type:"date", defaultVis:true, required:false},
-    {key:"originalValue", label:"原值(元)", width:"100px", sortable:true, type:"number", defaultVis:false, required:false},
-    {key:"residualRate", label:"残值率(%)", width:"90px", sortable:false, type:"number", defaultVis:false, required:false},
-    {key:"usefulLife", label:"使用年限", width:"90px", sortable:false, type:"number", defaultVis:false, required:false},
-    {key:"depreciationMethod", label:"折旧方法", width:"110px", sortable:false, type:"select", defaultVis:false, required:false},
     {key:"owner", label:"责任人", width:"110px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"note", label:"备注", width:"180px", sortable:false, type:"text", defaultVis:true, required:false}
 ];
@@ -999,10 +980,6 @@ const ROW_FORM_FIELDS = [
     ["rowStatus","status","当前状态","select",STATUS_OPTIONS],
     ["rowLocation","location","存放位置","text",null],
     ["rowDate","date","入库日期","date",null],
-    ["rowOriginalValue","originalValue","原值(元)","number",null],
-    ["rowResidualRate","residualRate","残值率(%)","number",null],
-    ["rowUsefulLife","usefulLife","使用年限(年)","number",null],
-    ["rowDepreciationMethod","depreciationMethod","折旧方法","select",["直线法","双倍余额递减法","不计提"]],
     ["rowOwner","owner","责任人","text",null],
     ["rowNote","note","备注","textarea",null]
 ];
@@ -2015,95 +1992,6 @@ function renderInventoryRecords() {
 }
 
 /* ================================================================
-   DEPRECIATION CALCULATION
-   ================================================================ */
-function calculateDepreciation(row) {
-    if (!row.originalValue || !row.usefulLife || row.depreciationMethod === '不计提') {
-        return { monthlyDepreciation: 0, accumulatedDepreciation: 0, netValue: parseFloat(row.originalValue) || 0 };
-    }
-
-    const originalValue = parseFloat(row.originalValue) || 0;
-    const residualRate = parseFloat(row.residualRate) || 5; // 默认残值率5%
-    const usefulLife = parseFloat(row.usefulLife) || 0;
-    const residualValue = originalValue * residualRate / 100;
-    const depreciableValue = originalValue - residualValue;
-
-    // 计算已使用月数
-    const purchaseDate = row.date ? new Date(row.date) : new Date();
-    const now = new Date();
-    const usedMonths = (now.getFullYear() - purchaseDate.getFullYear()) * 12 + (now.getMonth() - purchaseDate.getMonth());
-
-    let monthlyDepreciation = 0;
-    let accumulatedDepreciation = 0;
-
-    if (row.depreciationMethod === '双倍余额递减法') {
-        // 双倍余额递减法：月折旧率 = 2 / 使用年限 / 12
-        const monthlyRate = 2 / usefulLife / 12;
-        let bookValue = originalValue;
-        for (let i = 0; i < usedMonths && bookValue > residualValue; i++) {
-            const dep = bookValue * monthlyRate;
-            if (bookValue - dep < residualValue) {
-                accumulatedDepreciation += bookValue - residualValue;
-                bookValue = residualValue;
-            } else {
-                accumulatedDepreciation += dep;
-                bookValue -= dep;
-            }
-        }
-        monthlyDepreciation = bookValue > residualValue ? bookValue * monthlyRate : 0;
-    } else {
-        // 直线法：月折旧 = (原值 - 残值) / 使用年限 / 12
-        monthlyDepreciation = depreciableValue / usefulLife / 12;
-        accumulatedDepreciation = Math.min(monthlyDepreciation * usedMonths, depreciableValue);
-    }
-
-    const netValue = originalValue - accumulatedDepreciation;
-
-    return {
-        monthlyDepreciation: Math.round(monthlyDepreciation * 100) / 100,
-        accumulatedDepreciation: Math.round(accumulatedDepreciation * 100) / 100,
-        netValue: Math.round(netValue * 100) / 100,
-        usedMonths,
-        residualValue: Math.round(residualValue * 100) / 100
-    };
-}
-
-function getDepreciationSummary() {
-    const summary = {
-        totalOriginalValue: 0,
-        totalAccumulatedDepreciation: 0,
-        totalNetValue: 0,
-        byCategory: {}
-    };
-
-    rows.forEach(row => {
-        const dep = calculateDepreciation(row);
-        const originalValue = parseFloat(row.originalValue) || 0;
-
-        summary.totalOriginalValue += originalValue;
-        summary.totalAccumulatedDepreciation += dep.accumulatedDepreciation;
-        summary.totalNetValue += dep.netValue;
-
-        // 按大类汇总
-        const catName = row.assetMainName || '其他';
-        if (!summary.byCategory[catName]) {
-            summary.byCategory[catName] = { originalValue: 0, accumulatedDepreciation: 0, netValue: 0, count: 0 };
-        }
-        summary.byCategory[catName].originalValue += originalValue;
-        summary.byCategory[catName].accumulatedDepreciation += dep.accumulatedDepreciation;
-        summary.byCategory[catName].netValue += dep.netValue;
-        summary.byCategory[catName].count++;
-    });
-
-    // 四舍五入
-    summary.totalOriginalValue = Math.round(summary.totalOriginalValue * 100) / 100;
-    summary.totalAccumulatedDepreciation = Math.round(summary.totalAccumulatedDepreciation * 100) / 100;
-    summary.totalNetValue = Math.round(summary.totalNetValue * 100) / 100;
-
-    return summary;
-}
-
-/* ================================================================
    ASSET TRANSFER
    ================================================================ */
 let transferRecords = [];  // {id, assetId, transferDate, fromLocation, toLocation, fromOwner, toOwner, reason, operator}
@@ -2214,100 +2102,6 @@ function renderTransferRecords() {
         `;
         body.appendChild(tr);
     });
-}
-
-function renderDepreciationSummary() {
-    const container = document.getElementById('depreciationSummary');
-    if (!container) return;
-
-    const summary = getDepreciationSummary();
-
-    let html = `
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;">
-            <div class="card">
-                <div class="stat">
-                    <div>
-                        <div class="label">资产原值总计</div>
-                        <div class="value">¥${summary.totalOriginalValue.toLocaleString()}</div>
-                    </div>
-                    <div class="badge b-blue">原值</div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="stat">
-                    <div>
-                        <div class="label">累计折旧</div>
-                        <div class="value">¥${summary.totalAccumulatedDepreciation.toLocaleString()}</div>
-                    </div>
-                    <div class="badge b-orange">折旧</div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="stat">
-                    <div>
-                        <div class="label">资产净值</div>
-                        <div class="value">¥${summary.totalNetValue.toLocaleString()}</div>
-                    </div>
-                    <div class="badge b-green">净值</div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="stat">
-                    <div>
-                        <div class="label">折旧率</div>
-                        <div class="value">${summary.totalOriginalValue > 0 ? (summary.totalAccumulatedDepreciation / summary.totalOriginalValue * 100).toFixed(1) : 0}%</div>
-                    </div>
-                    <div class="badge b-purple">比率</div>
-                </div>
-            </div>
-        </div>
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead>
-                <tr style="background:#f8fafc;">
-                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:left;">资产大类</th>
-                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">资产数量</th>
-                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">原值(元)</th>
-                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">累计折旧(元)</th>
-                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">净值(元)</th>
-                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">折旧率</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    Object.entries(summary.byCategory).forEach(([name, data]) => {
-        const depreciationRate = data.originalValue > 0 ? (data.accumulatedDepreciation / data.originalValue * 100).toFixed(1) : 0;
-        html += `
-            <tr>
-                <td style="padding:10px;border:1px solid #e5e7eb;">${esc(name)}</td>
-                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">${data.count}</td>
-                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">¥${data.originalValue.toLocaleString()}</td>
-                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">¥${data.accumulatedDepreciation.toLocaleString()}</td>
-                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">¥${data.netValue.toLocaleString()}</td>
-                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">${depreciationRate}%</td>
-            </tr>
-        `;
-    });
-
-    html += '</tbody></table>';
-    container.innerHTML = html;
-}
-
-function exportDepreciationReport() {
-    const summary = getDepreciationSummary();
-    const headers = ['资产大类', '资产数量', '原值(元)', '累计折旧(元)', '净值(元)', '折旧率'];
-    const rows = Object.entries(summary.byCategory).map(([name, data]) => {
-        const rate = data.originalValue > 0 ? (data.accumulatedDepreciation / data.originalValue * 100).toFixed(1) : 0;
-        return [name, data.count, data.originalValue, data.accumulatedDepreciation, data.netValue, rate + '%'];
-    });
-
-    // 添加汇总行
-    const totalRate = summary.totalOriginalValue > 0 ? (summary.totalAccumulatedDepreciation / summary.totalOriginalValue * 100).toFixed(1) : 0;
-    rows.push(['合计', '', summary.totalOriginalValue, summary.totalAccumulatedDepreciation, summary.totalNetValue, totalRate + '%']);
-
-    const csv = headers.map(csvCell).join(',') + '\n' + rows.map(r => r.map(csvCell).join(',')).join('\n');
-    downloadText('折旧报表', 'csv', csv, 'text/csv;charset=utf-8', true);
-    toast('折旧报表已导出', 'success');
 }
 
 /* ================================================================
@@ -2866,7 +2660,7 @@ async function saveNow(){
     try{pushSnapshot("立即保存");ensureUniqueIds();sortRows();const ok=saveState();renderAll();refreshFolderStates();updateFreshness();let bok=true;if(backupDirHandle)bok=await saveToBackupFile();
         if(!ok)setSyncInfo("本地缓存写入有警告");else setSyncInfo(bok?(backupDirHandle?"已保存并备份":"已保存"):"已保存，备份失败")}catch(e){toast("保存失败："+e.message,"error");setSyncInfo("保存失败："+e.message)}
 }
-function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts();renderBorrowRecords();renderRepairRecords();renderInventoryRecords();renderTransferRecords();renderDepreciationSummary()}
+function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts();renderBorrowRecords();renderRepairRecords();renderInventoryRecords();renderTransferRecords()}
 function resetDemo(){
     if(!confirm("确认恢复示例数据？当前数据将被覆盖。"))return;
     rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];selectedSet.clear();idReserveSet.clear();safeRemoteVersion=0;
