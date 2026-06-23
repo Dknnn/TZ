@@ -3034,6 +3034,25 @@ function initFoldPanels() {
             saveFoldPanelsState();
         });
     });
+
+    // 关联状态分布和类别分布面板的展开/折叠
+    const statusPanel = document.getElementById('statusChartPanel');
+    const typePanel = document.getElementById('typeChartPanel');
+
+    if (statusPanel && typePanel) {
+        // 同步状态：当一个面板改变时，同步另一个面板
+        statusPanel.addEventListener('toggle', () => {
+            if (typePanel.open !== statusPanel.open) {
+                typePanel.open = statusPanel.open;
+            }
+        });
+
+        typePanel.addEventListener('toggle', () => {
+            if (statusPanel.open !== typePanel.open) {
+                statusPanel.open = typePanel.open;
+            }
+        });
+    }
 }
 
 window.addEventListener("load",async()=>{
