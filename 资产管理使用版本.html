@@ -507,7 +507,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     </div>
 
     <!-- FOLDER STATE -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="folderStatePanel">
         <summary class="fold-head"><span>📁 文件夹状态</span><span class="fold-tip">点击折叠 / 展开</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -524,11 +524,11 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
 
     <!-- CHARTS -->
     <div class="charts">
-        <details class="fold-panel chart-fold">
+        <details class="fold-panel chart-fold" id="statusChartPanel">
             <summary class="fold-head"><span>状态分布</span><span class="fold-tip">点击折叠</span></summary>
             <div class="fold-body"><div id="statusChart" class="bar-chart"></div></div>
         </details>
-        <details class="fold-panel chart-fold">
+        <details class="fold-panel chart-fold" id="typeChartPanel">
             <summary class="fold-head"><span>类别分布</span><span class="fold-tip">点击折叠</span></summary>
             <div class="fold-body"><div id="typeChart" class="bar-chart"></div></div>
         </details>
@@ -567,7 +567,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     </div>
 
     <!-- LOGS -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="logsPanel">
         <summary class="fold-head"><span>操作日志</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="hint" style="margin-bottom:10px;">自动记录新增、删除、状态变更、字段修改。v2.0 支持字段级diff。</div>
@@ -576,7 +576,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     </details>
 
     <!-- TRASH -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="trashPanel">
         <summary class="fold-head"><span>回收站</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -588,7 +588,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     </details>
 
     <!-- BORROW MANAGEMENT -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="borrowPanel">
         <summary class="fold-head"><span>📋 借用管理</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -613,7 +613,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     </details>
 
     <!-- REPAIR RECORDS -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="repairPanel">
         <summary class="fold-head"><span>🔧 维修记录</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -639,7 +639,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     </details>
 
     <!-- ASSET TRANSFER -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="transferPanel">
         <summary class="fold-head"><span>🔄 资产转移</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -664,7 +664,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     </details>
 
     <!-- DEPRECIATION SUMMARY -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="depreciationPanel">
         <summary class="fold-head"><span>📊 折旧统计</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -679,7 +679,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     </details>
 
     <!-- INVENTORY MANAGEMENT -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="inventoryPanel">
         <summary class="fold-head"><span>📦 资产盘点</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -703,7 +703,7 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     </details>
 
     <!-- SAFE HISTORY -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="safeHistoryPanel">
         <summary class="fold-head"><span>安全留痕 / 历史版本</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -2963,11 +2963,85 @@ const CSV_COLS=COLUMNS.filter(c=>c.key!=="assetMainCode"&&c.key!=="assetSubCode"
 const CSV_HEADERS=CSV_COLS.map(c=>c.label);
 const CSV_KEYS=CSV_COLS.map(c=>c.key);
 
+/* ================================================================
+   FOLD PANELS STATE
+   ================================================================ */
+const FOLD_PANELS_STORAGE_KEY = "ti_asset_fold_panels_v1";
+
+// 需要保存状态的折叠面板ID列表
+const FOLD_PANEL_IDS = [
+    "statusChartPanel",
+    "typeChartPanel",
+    // 文件夹状态
+    // 操作日志
+    // 回收站
+    // 借用管理
+    // 维修记录
+    // 资产转移
+    // 折旧统计
+    // 资产盘点
+    // 安全留痕
+];
+
+function getFoldPanelsState() {
+    try {
+        const saved = localStorage.getItem(FOLD_PANELS_STORAGE_KEY);
+        return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveFoldPanelsState() {
+    try {
+        const state = {};
+        // 保存指定的折叠面板状态
+        FOLD_PANEL_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                state[id] = el.open;
+            }
+        });
+        // 也保存其他fold-panel的状态
+        document.querySelectorAll('details.fold-panel').forEach(el => {
+            if (el.id) {
+                state[el.id] = el.open;
+            }
+        });
+        localStorage.setItem(FOLD_PANELS_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+        console.warn('保存折叠面板状态失败:', e);
+    }
+}
+
+function restoreFoldPanelsState() {
+    const state = getFoldPanelsState();
+    Object.entries(state).forEach(([id, isOpen]) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.open = isOpen;
+        }
+    });
+}
+
+function initFoldPanels() {
+    // 恢复折叠面板状态
+    restoreFoldPanelsState();
+
+    // 为所有fold-panel添加toggle事件监听
+    document.querySelectorAll('details.fold-panel').forEach(el => {
+        el.addEventListener('toggle', () => {
+            saveFoldPanelsState();
+        });
+    });
+}
+
 window.addEventListener("load",async()=>{
     initColVis();
     loadCatTree();
     syncMainFilterOpts();
     initDark();initDensity();
+    initFoldPanels(); // 初始化折叠面板状态
     /* FAB scroll */
     window.addEventListener("scroll",()=>{const fab=document.getElementById("fabTop");if(fab)fab.classList.toggle("visible",window.scrollY>400)});
 
