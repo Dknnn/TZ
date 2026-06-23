@@ -638,6 +638,46 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
         </div>
     </details>
 
+    <!-- ASSET TRANSFER -->
+    <details class="fold-panel">
+        <summary class="fold-head"><span>🔄 资产转移</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">资产位置变更、责任人变更记录。</div>
+                <div class="actions no-print">
+                    <button class="btn-soft" onclick="openTransferModal()">新增转移</button>
+                    <button class="btn-soft" onclick="renderTransferRecords()">刷新</button>
+                </div>
+            </div>
+            <div class="log-body"><table style="min-width:1200px;"><thead><tr>
+                <th style="width:120px;">转移编号</th>
+                <th style="width:120px;">资产编号</th>
+                <th style="width:120px;">转移日期</th>
+                <th style="width:120px;">原位置</th>
+                <th style="width:120px;">新位置</th>
+                <th style="width:100px;">原责任人</th>
+                <th style="width:100px;">新责任人</th>
+                <th style="width:150px;">转移原因</th>
+                <th style="width:100px;">操作人</th>
+            </tr></thead><tbody id="transferBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <!-- DEPRECIATION SUMMARY -->
+    <details class="fold-panel">
+        <summary class="fold-head"><span>📊 折旧统计</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">资产折旧汇总、价值分析。</div>
+                <div class="actions no-print">
+                    <button class="btn-soft" onclick="renderDepreciationSummary()">刷新</button>
+                    <button class="btn-soft" onclick="exportDepreciationReport()">导出报表</button>
+                </div>
+            </div>
+            <div id="depreciationSummary"></div>
+        </div>
+    </details>
+
     <!-- INVENTORY MANAGEMENT -->
     <details class="fold-panel">
         <summary class="fold-head"><span>📦 资产盘点</span><span class="fold-tip">点击折叠</span></summary>
@@ -742,6 +782,13 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     <div class="modal-actions"><button class="btn-secondary" onclick="closeRepairModal()">取消</button><button class="btn-primary" onclick="saveRepair()">确认登记</button></div>
 </div></div>
 
+<!-- Transfer Modal -->
+<div id="transferMask" class="mask"><div class="modal">
+    <div class="modal-head"><h3>🔄 资产转移</h3><button class="btn-danger" onclick="closeTransferModal()">关闭</button></div>
+    <div class="form-grid" id="transferFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeTransferModal()">取消</button><button class="btn-primary" onclick="saveTransfer()">确认转移</button></div>
+</div></div>
+
 <!-- ═══════════════ JAVASCRIPT ═══════════════ -->
 <script>
 /* ================================================================
@@ -765,7 +812,7 @@ const MAX_SNAPSHOTS_KEEP = 10;
 
 // IndexedDB 配置
 const IDB_DB_NAME = "ti_asset_manager";
-const IDB_DB_VERSION = 2;
+const IDB_DB_VERSION = 3;
 const IDB_STORES = {
     rows: "asset_rows",
     trash: "asset_trash",
@@ -774,7 +821,8 @@ const IDB_STORES = {
     config: "asset_config",
     borrows: "asset_borrows",
     repairs: "asset_repairs",
-    inventory: "asset_inventory"
+    inventory: "asset_inventory",
+    transfers: "asset_transfers"
 };
 
 // 分页配置
@@ -929,6 +977,10 @@ const COLUMNS = [
     {key:"status", label:"当前状态", width:"110px", sortable:false, type:"status", defaultVis:true, required:true},
     {key:"location", label:"存放位置", width:"150px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"date", label:"入库日期", width:"130px", sortable:false, type:"date", defaultVis:true, required:false},
+    {key:"originalValue", label:"原值(元)", width:"100px", sortable:true, type:"number", defaultVis:false, required:false},
+    {key:"residualRate", label:"残值率(%)", width:"90px", sortable:false, type:"number", defaultVis:false, required:false},
+    {key:"usefulLife", label:"使用年限", width:"90px", sortable:false, type:"number", defaultVis:false, required:false},
+    {key:"depreciationMethod", label:"折旧方法", width:"110px", sortable:false, type:"select", defaultVis:false, required:false},
     {key:"owner", label:"责任人", width:"110px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"note", label:"备注", width:"180px", sortable:false, type:"text", defaultVis:true, required:false}
 ];
@@ -947,6 +999,10 @@ const ROW_FORM_FIELDS = [
     ["rowStatus","status","当前状态","select",STATUS_OPTIONS],
     ["rowLocation","location","存放位置","text",null],
     ["rowDate","date","入库日期","date",null],
+    ["rowOriginalValue","originalValue","原值(元)","number",null],
+    ["rowResidualRate","residualRate","残值率(%)","number",null],
+    ["rowUsefulLife","usefulLife","使用年限(年)","number",null],
+    ["rowDepreciationMethod","depreciationMethod","折旧方法","select",["直线法","双倍余额递减法","不计提"]],
     ["rowOwner","owner","责任人","text",null],
     ["rowNote","note","备注","textarea",null]
 ];
@@ -1314,7 +1370,7 @@ function toggleSort(colKey){
 async function loadState(){
     try{
         // 尝试从 IndexedDB 加载
-        const [rowsData, trashData, logsData, snapsData, configData, borrowsData, repairsData, inventoryData] = await Promise.all([
+        const [rowsData, trashData, logsData, snapsData, configData, borrowsData, repairsData, inventoryData, transfersData] = await Promise.all([
             idbGet(IDB_STORES.rows, 'main'),
             idbGet(IDB_STORES.trash, 'main'),
             idbGet(IDB_STORES.logs, 'main'),
@@ -1322,7 +1378,8 @@ async function loadState(){
             idbGet(IDB_STORES.config, 'all'),
             idbGet(IDB_STORES.borrows, 'main'),
             idbGet(IDB_STORES.repairs, 'main'),
-            idbGet(IDB_STORES.inventory, 'main')
+            idbGet(IDB_STORES.inventory, 'main'),
+            idbGet(IDB_STORES.transfers, 'main')
         ]);
 
         if (rowsData) {
@@ -1333,6 +1390,7 @@ async function loadState(){
             borrowRecords = borrowsData || [];
             repairRecords = repairsData || [];
             inventoryRecords = inventoryData || [];
+            transferRecords = transfersData || [];
         } else {
             // IndexedDB 无数据，尝试 localStorage
             rows = normRows(safeJson(lsGet(STORAGE_KEY,"[]"))||[]);
@@ -1342,6 +1400,7 @@ async function loadState(){
             borrowRecords = [];
             repairRecords = [];
             inventoryRecords = [];
+            transferRecords = [];
             // 迁移到 IndexedDB
             await migrateToIDB();
         }
@@ -1388,7 +1447,8 @@ async function saveState(){
             idbSet(IDB_STORES.config, 'all', config),
             idbSet(IDB_STORES.borrows, 'main', borrowRecords),
             idbSet(IDB_STORES.repairs, 'main', repairRecords),
-            idbSet(IDB_STORES.inventory, 'main', inventoryRecords)
+            idbSet(IDB_STORES.inventory, 'main', inventoryRecords),
+            idbSet(IDB_STORES.transfers, 'main', transferRecords)
         ]);
 
         return true;
@@ -1955,6 +2015,302 @@ function renderInventoryRecords() {
 }
 
 /* ================================================================
+   DEPRECIATION CALCULATION
+   ================================================================ */
+function calculateDepreciation(row) {
+    if (!row.originalValue || !row.usefulLife || row.depreciationMethod === '不计提') {
+        return { monthlyDepreciation: 0, accumulatedDepreciation: 0, netValue: parseFloat(row.originalValue) || 0 };
+    }
+
+    const originalValue = parseFloat(row.originalValue) || 0;
+    const residualRate = parseFloat(row.residualRate) || 5; // 默认残值率5%
+    const usefulLife = parseFloat(row.usefulLife) || 0;
+    const residualValue = originalValue * residualRate / 100;
+    const depreciableValue = originalValue - residualValue;
+
+    // 计算已使用月数
+    const purchaseDate = row.date ? new Date(row.date) : new Date();
+    const now = new Date();
+    const usedMonths = (now.getFullYear() - purchaseDate.getFullYear()) * 12 + (now.getMonth() - purchaseDate.getMonth());
+
+    let monthlyDepreciation = 0;
+    let accumulatedDepreciation = 0;
+
+    if (row.depreciationMethod === '双倍余额递减法') {
+        // 双倍余额递减法：月折旧率 = 2 / 使用年限 / 12
+        const monthlyRate = 2 / usefulLife / 12;
+        let bookValue = originalValue;
+        for (let i = 0; i < usedMonths && bookValue > residualValue; i++) {
+            const dep = bookValue * monthlyRate;
+            if (bookValue - dep < residualValue) {
+                accumulatedDepreciation += bookValue - residualValue;
+                bookValue = residualValue;
+            } else {
+                accumulatedDepreciation += dep;
+                bookValue -= dep;
+            }
+        }
+        monthlyDepreciation = bookValue > residualValue ? bookValue * monthlyRate : 0;
+    } else {
+        // 直线法：月折旧 = (原值 - 残值) / 使用年限 / 12
+        monthlyDepreciation = depreciableValue / usefulLife / 12;
+        accumulatedDepreciation = Math.min(monthlyDepreciation * usedMonths, depreciableValue);
+    }
+
+    const netValue = originalValue - accumulatedDepreciation;
+
+    return {
+        monthlyDepreciation: Math.round(monthlyDepreciation * 100) / 100,
+        accumulatedDepreciation: Math.round(accumulatedDepreciation * 100) / 100,
+        netValue: Math.round(netValue * 100) / 100,
+        usedMonths,
+        residualValue: Math.round(residualValue * 100) / 100
+    };
+}
+
+function getDepreciationSummary() {
+    const summary = {
+        totalOriginalValue: 0,
+        totalAccumulatedDepreciation: 0,
+        totalNetValue: 0,
+        byCategory: {}
+    };
+
+    rows.forEach(row => {
+        const dep = calculateDepreciation(row);
+        const originalValue = parseFloat(row.originalValue) || 0;
+
+        summary.totalOriginalValue += originalValue;
+        summary.totalAccumulatedDepreciation += dep.accumulatedDepreciation;
+        summary.totalNetValue += dep.netValue;
+
+        // 按大类汇总
+        const catName = row.assetMainName || '其他';
+        if (!summary.byCategory[catName]) {
+            summary.byCategory[catName] = { originalValue: 0, accumulatedDepreciation: 0, netValue: 0, count: 0 };
+        }
+        summary.byCategory[catName].originalValue += originalValue;
+        summary.byCategory[catName].accumulatedDepreciation += dep.accumulatedDepreciation;
+        summary.byCategory[catName].netValue += dep.netValue;
+        summary.byCategory[catName].count++;
+    });
+
+    // 四舍五入
+    summary.totalOriginalValue = Math.round(summary.totalOriginalValue * 100) / 100;
+    summary.totalAccumulatedDepreciation = Math.round(summary.totalAccumulatedDepreciation * 100) / 100;
+    summary.totalNetValue = Math.round(summary.totalNetValue * 100) / 100;
+
+    return summary;
+}
+
+/* ================================================================
+   ASSET TRANSFER
+   ================================================================ */
+let transferRecords = [];  // {id, assetId, transferDate, fromLocation, toLocation, fromOwner, toOwner, reason, operator}
+
+function generateTransferId() {
+    const date = todayYmd();
+    const count = transferRecords.filter(r => r.id.startsWith(`TR-${date}`)).length + 1;
+    return `TR-${date}-${String(count).padStart(3, '0')}`;
+}
+
+function openTransferModal(assetId = '') {
+    const modal = document.getElementById('transferMask');
+    const form = document.getElementById('transferFormGrid');
+
+    const asset = assetId ? rows.find(r => r.id === assetId) : null;
+
+    form.innerHTML = `
+        <label>转移编号 <input id="transferId" type="text" value="${generateTransferId()}" readonly style="background:#f5f5f5;" /></label>
+        <label>资产编号 <input id="transferAssetId" type="text" value="${assetId}" ${assetId ? 'readonly' : ''} oninput="onTransferAssetChange(this.value)" /></label>
+        <label>转移日期 <input id="transferDate" type="date" value="${new Date().toISOString().split('T')[0]}" /></label>
+        <label>原位置 <input id="transferFromLocation" type="text" value="${asset?.location || ''}" readonly style="background:#f5f5f5;" /></label>
+        <label>新位置 <input id="transferToLocation" type="text" placeholder="输入新位置" /></label>
+        <label>原责任人 <input id="transferFromOwner" type="text" value="${asset?.owner || ''}" readonly style="background:#f5f5f5;" /></label>
+        <label>新责任人 <input id="transferToOwner" type="text" placeholder="输入新责任人" /></label>
+        <label style="grid-column:1 / -1;">转移原因 <textarea id="transferReason" rows="2" placeholder="转移原因"></textarea></label>
+    `;
+    modal.style.display = 'flex';
+}
+
+function onTransferAssetChange(assetId) {
+    const asset = rows.find(r => r.id === assetId);
+    if (asset) {
+        document.getElementById('transferFromLocation').value = asset.location || '';
+        document.getElementById('transferFromOwner').value = asset.owner || '';
+    }
+}
+
+function closeTransferModal() {
+    document.getElementById('transferMask').style.display = 'none';
+}
+
+function saveTransfer() {
+    const data = {
+        id: document.getElementById('transferId').value,
+        assetId: document.getElementById('transferAssetId').value.trim(),
+        transferDate: document.getElementById('transferDate').value,
+        fromLocation: document.getElementById('transferFromLocation').value,
+        toLocation: document.getElementById('transferToLocation').value.trim(),
+        fromOwner: document.getElementById('transferFromOwner').value,
+        toOwner: document.getElementById('transferToOwner').value.trim(),
+        reason: document.getElementById('transferReason').value.trim(),
+        operator: getOp()
+    };
+
+    if (!data.assetId || !data.toLocation) {
+        toast('请填写资产编号和新位置', 'warn');
+        return;
+    }
+
+    // 更新资产信息
+    const asset = rows.find(r => r.id === data.assetId);
+    if (!asset) {
+        toast('资产编号不存在', 'warn');
+        return;
+    }
+
+    const changes = {};
+    if (data.toLocation && data.toLocation !== asset.location) {
+        changes.location = { old: asset.location, new: data.toLocation };
+        asset.location = data.toLocation;
+    }
+    if (data.toOwner && data.toOwner !== asset.owner) {
+        changes.owner = { old: asset.owner, new: data.toOwner };
+        asset.owner = data.toOwner;
+    }
+
+    transferRecords.unshift(data);
+    addLog('资产转移', asset, `${data.fromLocation} → ${data.toLocation}`, changes);
+    saveState();
+    closeTransferModal();
+    renderTransferRecords();
+    renderTable();
+    toast(`转移成功：${data.assetId}`, 'success');
+}
+
+function renderTransferRecords() {
+    const body = document.getElementById('transferBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!transferRecords.length) {
+        body.innerHTML = '<tr><td colspan="9" style="padding:16px;text-align:center;color:#6b7280;">暂无转移记录</td></tr>';
+        return;
+    }
+
+    transferRecords.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.id)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.assetId)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.transferDate)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.fromLocation)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.toLocation)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.fromOwner || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.toOwner || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.reason || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.operator)}</td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+function renderDepreciationSummary() {
+    const container = document.getElementById('depreciationSummary');
+    if (!container) return;
+
+    const summary = getDepreciationSummary();
+
+    let html = `
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;">
+            <div class="card">
+                <div class="stat">
+                    <div>
+                        <div class="label">资产原值总计</div>
+                        <div class="value">¥${summary.totalOriginalValue.toLocaleString()}</div>
+                    </div>
+                    <div class="badge b-blue">原值</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="stat">
+                    <div>
+                        <div class="label">累计折旧</div>
+                        <div class="value">¥${summary.totalAccumulatedDepreciation.toLocaleString()}</div>
+                    </div>
+                    <div class="badge b-orange">折旧</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="stat">
+                    <div>
+                        <div class="label">资产净值</div>
+                        <div class="value">¥${summary.totalNetValue.toLocaleString()}</div>
+                    </div>
+                    <div class="badge b-green">净值</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="stat">
+                    <div>
+                        <div class="label">折旧率</div>
+                        <div class="value">${summary.totalOriginalValue > 0 ? (summary.totalAccumulatedDepreciation / summary.totalOriginalValue * 100).toFixed(1) : 0}%</div>
+                    </div>
+                    <div class="badge b-purple">比率</div>
+                </div>
+            </div>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+                <tr style="background:#f8fafc;">
+                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:left;">资产大类</th>
+                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">资产数量</th>
+                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">原值(元)</th>
+                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">累计折旧(元)</th>
+                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">净值(元)</th>
+                    <th style="padding:10px;border:1px solid #e5e7eb;text-align:right;">折旧率</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    Object.entries(summary.byCategory).forEach(([name, data]) => {
+        const depreciationRate = data.originalValue > 0 ? (data.accumulatedDepreciation / data.originalValue * 100).toFixed(1) : 0;
+        html += `
+            <tr>
+                <td style="padding:10px;border:1px solid #e5e7eb;">${esc(name)}</td>
+                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">${data.count}</td>
+                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">¥${data.originalValue.toLocaleString()}</td>
+                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">¥${data.accumulatedDepreciation.toLocaleString()}</td>
+                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">¥${data.netValue.toLocaleString()}</td>
+                <td style="padding:10px;border:1px solid #e5e7eb;text-align:right;">${depreciationRate}%</td>
+            </tr>
+        `;
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+function exportDepreciationReport() {
+    const summary = getDepreciationSummary();
+    const headers = ['资产大类', '资产数量', '原值(元)', '累计折旧(元)', '净值(元)', '折旧率'];
+    const rows = Object.entries(summary.byCategory).map(([name, data]) => {
+        const rate = data.originalValue > 0 ? (data.accumulatedDepreciation / data.originalValue * 100).toFixed(1) : 0;
+        return [name, data.count, data.originalValue, data.accumulatedDepreciation, data.netValue, rate + '%'];
+    });
+
+    // 添加汇总行
+    const totalRate = summary.totalOriginalValue > 0 ? (summary.totalAccumulatedDepreciation / summary.totalOriginalValue * 100).toFixed(1) : 0;
+    rows.push(['合计', '', summary.totalOriginalValue, summary.totalAccumulatedDepreciation, summary.totalNetValue, totalRate + '%']);
+
+    const csv = headers.map(csvCell).join(',') + '\n' + rows.map(r => r.map(csvCell).join(',')).join('\n');
+    downloadText('折旧报表', 'csv', csv, 'text/csv;charset=utf-8', true);
+    toast('折旧报表已导出', 'success');
+}
+
+/* ================================================================
    COLUMN VISIBILITY
    ================================================================ */
 function initColVis(){
@@ -2510,7 +2866,7 @@ async function saveNow(){
     try{pushSnapshot("立即保存");ensureUniqueIds();sortRows();const ok=saveState();renderAll();refreshFolderStates();updateFreshness();let bok=true;if(backupDirHandle)bok=await saveToBackupFile();
         if(!ok)setSyncInfo("本地缓存写入有警告");else setSyncInfo(bok?(backupDirHandle?"已保存并备份":"已保存"):"已保存，备份失败")}catch(e){toast("保存失败："+e.message,"error");setSyncInfo("保存失败："+e.message)}
 }
-function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts();renderBorrowRecords();renderRepairRecords();renderInventoryRecords()}
+function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts();renderBorrowRecords();renderRepairRecords();renderInventoryRecords();renderTransferRecords();renderDepreciationSummary()}
 function resetDemo(){
     if(!confirm("确认恢复示例数据？当前数据将被覆盖。"))return;
     rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];selectedSet.clear();idReserveSet.clear();safeRemoteVersion=0;
