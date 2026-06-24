@@ -1030,7 +1030,12 @@ let idb = null;
 const uid = () => (window.crypto?.randomUUID?.() || "uid-"+Date.now()+"-"+Math.random().toString(16).slice(2));
 const clone = v => JSON.parse(JSON.stringify(v));
 const esc = str => (str??"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-const csvCell = v => `"${(v??"").toString().replace(/"/g,'""')}"`;
+const csvCell = v => {
+    let s = (v??"").toString().replace(/"/g,'""');
+    // 防止Excel公式注入：对以特殊字符开头的内容添加单引号前缀
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return `"${s}"`;
+};
 const padNo = n => String(n).padStart(4,"0");
 const fmtNo = n => `PA-${padNo(n)}`;
 const parseNo = id => { const m=(id||"").toString().trim().match(/^PA-(\d{4,})$/i); return m?parseInt(m[1],10):NaN; };
@@ -2604,9 +2609,15 @@ function confirmImport(){
 }
 
 /* ── Excel Export (.xls 格式，Excel可直接打开) ── */
+function sanitizeExcelCell(v){
+    let s = (v??"").toString();
+    // 防止Excel公式注入：对以特殊字符开头的内容添加单引号前缀
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return esc(s);
+}
 function exportExcel(list, prefix){
     const headers=CSV_HEADERS, keys=CSV_KEYS;
-    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>资产台账</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>td{border:1px solid #ccc;padding:4px 8px;}th{background:#0f172a;color:#fff;padding:6px 8px;}</style></head><body><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${list.map(r=>`<tr>${keys.map(k=>`<td>${esc((r[k]??"").toString())}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
+    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>资产台账</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>td{border:1px solid #ccc;padding:4px 8px;}th{background:#0f172a;color:#fff;padding:6px 8px;}</style></head><body><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${list.map(r=>`<tr>${keys.map(k=>`<td>${sanitizeExcelCell(r[k])}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
     downloadText(prefix,"xls",html,"application/vnd.ms-excel",true);
 }
 function exportAllExcel(){exportExcel(sorted(rows),"ledger_all")}
