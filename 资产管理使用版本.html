@@ -2477,7 +2477,18 @@ function syncBulkSub(){
     el.innerHTML='<option value="">保持不变</option>'+getSubs(mc).map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
     refreshSelect(el);
 }
-function syncSubFilter(){syncSubSelect("mainCategoryFilter","subCategoryFilter",false)}
+function syncSubFilter(){
+    const mainCat = document.getElementById("mainCategoryFilter").value;
+    const subEl = document.getElementById("subCategoryFilter");
+    if (!mainCat) {
+        // 大类为空时，清空子类筛选，显示"全部子类"
+        subEl.innerHTML = '<option value="">全部子类</option>';
+        refreshSelect(subEl);
+    } else {
+        // 大类有值时，显示该大类的子类
+        syncSubSelect("mainCategoryFilter","subCategoryFilter",false);
+    }
+}
 function applyBulkEdit(){
     const mc=document.getElementById("bulkMainCategory").value,sc=document.getElementById("bulkSubCategory").value;
     const status=document.getElementById("bulkStatus").value,loc=document.getElementById("bulkLocation").value.trim();
@@ -2507,7 +2518,12 @@ function loadLocalDraft(){
         rows=normRows(draft.rows||[]);trash=normTrash(draft.trash||[]);logs=normLogs(draft.logs||[]);snapshots=normSnaps(draft.snapshots||[]);safeRemoteVersion=draft.safeRemoteVersion||0;
         migrateAll();ensureUniqueIds();sortRows();saveState();renderAll();alert("草稿已恢复")}catch(e){alert("恢复失败："+e.message)}
 }
-function rollbackSnapshot(idx){const snap=snapshots[idx];if(!snap)return;if(!confirm(`回滚到 v${snap.version||idx+1}？当前数据将被覆盖。`))return;rows=normRows(clone(snap.rows||[]));trash=normTrash(clone(snap.trash||[]));logs=normLogs(clone(snap.logs||[]));migrateAll();ensureUniqueIds();sortRows();pushSnapshot("回滚快照",`回滚到 v${snap.version||idx+1}`);saveState();renderAll()}
+function rollbackSnapshot(idx){const snap=snapshots[idx];if(!snap)return;if(!confirm(`回滚到 v${snap.version||idx+1}？当前数据将被覆盖。`))return;
+
+    // 回滚前先保存当前状态作为备份
+    pushSnapshot("回滚前备份", `回滚到 v${snap.version||idx+1}前自动备份`);
+
+    rows=normRows(clone(snap.rows||[]));trash=normTrash(clone(snap.trash||[]));logs=normLogs(clone(snap.logs||[]));migrateAll();ensureUniqueIds();sortRows();pushSnapshot("回滚快照",`回滚到 v${snap.version||idx+1}`);saveState();renderAll()}
 function refreshSafeHistory(){renderSafeHistory()}
 
 /* ================================================================
@@ -2559,6 +2575,10 @@ function showImportPreview(rowsData, type, rawData){
 }
 function confirmImport(){
     if(!pendingImport)return;
+
+    // 覆盖前先保存快照，以便回退
+    pushSnapshot("导入前备份", `导入${pendingImport.type}前自动备份`);
+
     const {rows:importRows, rawData}=pendingImport;
     rows=normRows(importRows);
     if(rawData?.trash)trash=normTrash(rawData.trash);
@@ -2642,6 +2662,10 @@ async function loadFromSyncFile(){
         if(!exists){alert(`文件夹中没有 ${FILE_NAME}`);return}
         const fh=await syncDirHandle.getFileHandle(FILE_NAME),file=await fh.getFile(),text=await file.text();
         let raw;try{raw=safeJson(text)}catch(e){alert("JSON解析失败："+e.message);return}
+
+        // 覆盖前先保存快照，以便回退
+        pushSnapshot("微盘加载前备份", "从微盘加载前自动备份");
+
         rows=normRows(raw.rows||[]);trash=normTrash(raw.trash||[]);logs=normLogs(raw.logs||[]);snapshots=normSnaps(raw.snapshots||[]);safeRemoteVersion=raw.version||0;
         migrateAll();ensureUniqueIds();sortRows();pushSnapshot("从微盘加载");saveState();renderAll();refreshFolderStates();setSyncInfo("已从微盘加载");alert("加载成功！")
     }catch(e){alert(`加载失败：${e.message}`)}
