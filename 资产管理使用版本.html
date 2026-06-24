@@ -1179,7 +1179,20 @@ function validateRow(row) {
 function toast(msg, type="info", action=null, actionLabel=""){
     const c=document.getElementById("toastContainer");if(!c)return;
     const el=document.createElement("div");el.className=`toast ${type}`;
-    el.innerHTML=msg+(action?` <button style="background:none;border:none;color:#fff;text-decoration:underline;cursor:pointer;font-weight:700;padding:0;font-size:13px;" onclick="const t=this.parentElement;t.classList.add('removing');setTimeout(()=>t.remove(),280);(${action})()">${actionLabel}</button>`:"");
+    // 使用textContent防止XSS注入
+    el.textContent=msg;
+    if(action){
+        const btn=document.createElement("button");
+        btn.style.cssText="background:none;border:none;color:#fff;text-decoration:underline;cursor:pointer;font-weight:700;padding:0;font-size:13px;margin-left:8px;";
+        btn.textContent=actionLabel;
+        btn.onclick=e=>{
+            e.stopPropagation();
+            el.classList.add("removing");
+            setTimeout(()=>el.remove(),280);
+            if(typeof action==="function")action();
+        };
+        el.appendChild(btn);
+    }
     el.onclick=e=>{if(e.target.tagName!=="BUTTON"){el.classList.add("removing");setTimeout(()=>el.remove(),280)}};
     c.appendChild(el);setTimeout(()=>{if(el.parentNode){el.classList.add("removing");setTimeout(()=>el.remove(),280)}},5000);
 }
@@ -1190,7 +1203,7 @@ function trashRowWithUndo(uidValue){
     const row=rows[idx];_lastTrashed={row:clone(row),time:Date.now()};
     trash.unshift({...clone(row),deletedAt:new Date().toLocaleString()});rows.splice(idx,1);releaseNo(row.id);
     selectedSet.delete(uidValue);addLog("删除",row,"移入回收站");saveState();renderAll();
-    toast(`已移入回收站：${row.id}`,"info",`()=>{undoTrash()}`, "撤销");
+    toast(`已移入回收站：${row.id}`,"info",undoTrash, "撤销");
 }
 function undoTrash(){
     if(!_lastTrashed||Date.now()-_lastTrashed.time>30000){toast("无法撤销，已超时","warn");return}
@@ -1269,7 +1282,7 @@ function selOpts(opts,sel){return opts.map(o=>`<option value="${esc(o)}" ${o===s
    ================================================================ */
 function normRow(r){
     return {
-        uid: r.uid||uid(), id:(r.id??"").toString().trim(), source:r.source??"",
+        uid: uid(), id:(r.id??"").toString().trim(), source:r.source??"",
         assetMainCode:r.assetMainCode??"", assetMainName:r.assetMainName??"",
         assetSubCode:r.assetSubCode??"", assetSubName:r.assetSubName??"",
         brand:r.brand??"", model:r.model??"", spec:r.spec??"", qty:r.qty??"1",
@@ -2622,8 +2635,15 @@ function safeName(h){return h?.name||"未选择"}
 async function initFolders(){
     try{
         syncDirHandle=await loadHandle("syncDirHandle");backupDirHandle=await loadHandle("backupDirHandle");
-        if(syncDirHandle){const ok=await ensurePerm(syncDirHandle);if(!ok)syncDirHandle=null}
-        if(backupDirHandle){const ok=await ensurePerm(backupDirHandle);if(!ok)backupDirHandle=null}
+        // 不自动请求权限，只检查当前权限状态
+        if(syncDirHandle){
+            const hasPerm=await checkPerm(syncDirHandle);
+            if(!hasPerm)syncDirHandle=null
+        }
+        if(backupDirHandle){
+            const hasPerm=await checkPerm(backupDirHandle);
+            if(!hasPerm)backupDirHandle=null
+        }
         refreshFolderStates();
     }catch(e){syncDirHandle=null;backupDirHandle=null;refreshFolderStates()}
 }
