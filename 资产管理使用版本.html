@@ -418,6 +418,15 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
 @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
 
+/* ── 日常台账与批次库存 ── */
+.stock-summary { display:flex; flex-wrap:wrap; gap:5px; font-size:11px; font-weight:700; padding:5px 8px; line-height:1.45; }
+.stock-summary span { padding:2px 6px; border-radius:999px; background:#eff6ff; color:#1d4ed8; }
+.stock-summary .out { background:#fff7ed; color:#c2410c; }
+.stock-summary .total { background:#f1f5f9; color:#475569; }
+body.dark .stock-summary span { background:#1e3a5f; color:#93c5fd; }
+body.dark .stock-summary .out { background:#4a2710; color:#fdba74; }
+body.dark .stock-summary .total { background:#334155; color:#cbd5e1; }
+
 /* ── 更新说明 ── */
 .release-notes { display: grid; gap: 12px; color: var(--text); line-height: 1.7; }
 .release-notes .release-intro { margin: 0; color: var(--muted); font-size: 13px; }
@@ -624,7 +633,9 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
             <div><div class="title">TI部资产管理总表</div><div class="meta">支持多选批量操作、列显示自定义。修改后自动保存。</div></div>
             <div class="table-head-actions no-print">
                 <button class="btn-primary" onclick="addRow()">新增一行</button>
+                <button class="btn-green" onclick="openIssueForSelection()">⚡ 领用</button>
                 <button class="btn-soft" onclick="openBatchModal()">批量新增</button>
+                <button class="btn-soft" onclick="useSimpleView()" title="只显示日常登记所需字段">👁 简洁视图</button>
                 <button class="btn-soft" onclick="toggleColVis()" id="colVisBtn">⚙ 列设置</button>
                 <button class="btn-soft" onclick="toggleDensity()" id="densityBtn" title="切换紧凑模式">📏 密度</button>
                 <button class="btn-soft" onclick="openCatMgr()">🏷 分类</button>
@@ -792,6 +803,13 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
     <div class="modal-actions"><button class="btn-primary" onclick="closeModal('releaseNotesMask')">我知道了</button></div>
 </div></div>
 
+<div id="issueMask" class="mask"><div class="modal" style="width:min(620px,100%);">
+    <div class="modal-head"><h3>⚡ 资产领用</h3><button class="btn-danger" onclick="closeModal('issueMask')">关闭</button></div>
+    <div class="hint" id="issueAssetHint" style="margin-bottom:12px;"></div>
+    <div class="form-grid" id="issueFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeModal('issueMask')">取消</button><button class="btn-primary" onclick="saveIssue()">确认领用</button></div>
+</div></div>
+
 <div id="rowMask" class="mask"><div class="modal">
     <div class="modal-head"><h3 id="rowModalTitle">新增资产</h3><button class="btn-danger" onclick="closeModal('rowMask')">关闭</button></div>
     <div class="form-grid" id="rowFormGrid"></div>
@@ -886,6 +904,7 @@ const STORAGE_BORROWS = "ti_asset_db_borrows_v4";
 const STORAGE_REPAIRS = "ti_asset_db_repairs_v4";
 const STORAGE_INVENTORY = "ti_asset_db_inventory_v4";
 const STORAGE_TRANSFERS = "ti_asset_db_transfers_v4";
+const STORAGE_ISSUES = "ti_asset_db_issues_v1";
 const DB_NAME = "ti_asset_db_handles";
 const DB_STORE = "handles";
 const FILE_NAME = "ledger.json";
@@ -1066,8 +1085,10 @@ const COLUMNS = [
     {key:"assetSubCode", label:"资产子类", width:"160px", sortable:false, type:"subCat", defaultVis:true, required:true},
     {key:"brand", label:"品牌", width:"110px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"model", label:"型号", width:"140px", sortable:false, type:"text", defaultVis:true, required:false},
-    {key:"spec", label:"规格", width:"130px", sortable:false, type:"text", defaultVis:true, required:false},
+    {key:"spec", label:"规格", width:"170px", sortable:false, type:"assetSpec", defaultVis:true, required:false},
     {key:"qty", label:"数量", width:"70px", sortable:false, type:"number", defaultVis:true, required:false},
+    {key:"availableQty", label:"库存", width:"145px", sortable:false, type:"stock", defaultVis:true, required:false},
+    {key:"memoryStandard", label:"内存代际", width:"100px", sortable:true, type:"memory", defaultVis:false, required:false},
     {key:"sn", label:"序列号", width:"130px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"check", label:"检测结果", width:"110px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"status", label:"当前状态", width:"110px", sortable:false, type:"status", defaultVis:true, required:true},
@@ -1126,6 +1147,7 @@ let filteredCache = [];  // 缓存筛选结果
 
 // 借用记录
 let borrowRecords = [];  // {id, assetId, borrower, borrowDate, expectedReturnDate, actualReturnDate, purpose, status, note}
+let issueRecords = [];   // 无序列号批次资产的永久领用流水
 
 // 维修记录
 let repairRecords = [];  // {id, assetId, repairDate, repairType, description, cost, repairer, status, completionDate, note}
@@ -1161,6 +1183,13 @@ const parseNo = id => {
     return legacy?{legacy:true,prefix:"PA",date:"00000000",seq:parseInt(legacy[1],10),raw:s}:null;
 };
 const sumQty = list => list.reduce((a,r)=>a+(parseFloat(r.qty)||0),0);
+const totalQty = r => Math.max(1,parseInt(r.qty||"1",10)||1);
+const availableQty = r => r.inventoryMode==="batch" ? Math.max(0,Math.min(totalQty(r),parseInt(r.availableQty??r.qty,10)||0)) : (r.status==="在库"||r.status==="待检测"?totalQty(r):0);
+const issuedQty = r => r.inventoryMode==="batch" ? totalQty(r)-availableQty(r) : (r.status==="已领用"?totalQty(r):0);
+const isBatch = r => r.inventoryMode==="batch";
+function displayStatus(r){if(isBatch(r)&&issuedQty(r)>0&&availableQty(r)>0)return "部分领用";if(isBatch(r)&&availableQty(r)===0&&issuedQty(r)>0)return "已领完";return r.status||"待检测"}
+function memorySummary(r){return [r.memoryStandard,r.memoryCapacity,r.memorySpeed,r.memoryForm].filter(Boolean).join(" · ")}
+const MEMORY_ORDER={DDR2:2,DDR3:3,DDR3L:3.1,DDR4:4,DDR5:5};
 const todayYmd = (d=new Date()) => { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0"); return `${y}${m}${day}`; };
 const statusCls = s => (STATUS_MAP[s]||{cls:"s-wait"}).cls;
 const getOp = () => (document.getElementById("operatorInput")?.value||"").trim()||"系统";
@@ -1409,14 +1438,18 @@ function selOpts(opts,sel){return opts.map(o=>`<option value="${esc(o)}" ${o===s
    DATA NORMALIZATION & MIGRATION
    ================================================================ */
 function normRow(r){
+    const qty=Math.max(1,parseInt(r.qty??"1",10)||1), hasSn=!!((r.sn??"").toString().trim()&&((r.sn??"").toString().trim()!=="无"));
+    const inventoryMode=r.inventoryMode||((!hasSn&&qty>1)?"batch":"single");
     return {
         uid: r.uid||uid(), id:(r.id??"").toString().trim(), source:r.source??"",
         assetMainCode:r.assetMainCode??"", assetMainName:r.assetMainName??"",
         assetSubCode:r.assetSubCode??"", assetSubName:r.assetSubName??"",
-        brand:r.brand??"", model:r.model??"", spec:r.spec??"", qty:r.qty??"1",
+        brand:r.brand??"", model:r.model??"", spec:r.spec??"", qty:String(qty),
         sn:r.sn??"", check:r.check??"待测", status:r.status??"待检测",
         location:r.location??"", date:r.date??"", owner:r.owner??"", note:r.note??"",
-        type:r.type??"", machineClass:r.machineClass??""
+        type:r.type??"", machineClass:r.machineClass??"", inventoryMode,
+        availableQty:String(Math.max(0,Math.min(qty,parseInt(r.availableQty??qty,10)||0))),
+        memoryStandard:r.memoryStandard??"", memoryCapacity:r.memoryCapacity??"", memorySpeed:r.memorySpeed??"", memoryForm:r.memoryForm??""
     };
 }
 function normRows(arr){return (arr||[]).map(normRow)}
@@ -1473,6 +1506,7 @@ function sortRows(){rows.sort(sortComp)}
 function sorted(list){
     if(sortKey==="id"){const arr=list.slice().sort(sortComp);return sortAsc?arr:arr.reverse()}
     const arr=list.slice().sort((a,b)=>{
+        if(sortKey==="memoryStandard"){const ma=MEMORY_ORDER[a.memoryStandard]||99,mb=MEMORY_ORDER[b.memoryStandard]||99;if(ma!==mb)return ma-mb;return (a.memoryCapacity||"").localeCompare(b.memoryCapacity||"","zh-Hans-CN",{numeric:true})}
         const va=(a[sortKey]??"").toString(), vb=(b[sortKey]??"").toString();
         const na=parseFloat(va), nb=parseFloat(vb);
         if(!isNaN(na)&&!isNaN(nb))return na-nb;
@@ -1523,6 +1557,7 @@ async function loadState(){
             repairRecords = safeJson(lsGet(STORAGE_REPAIRS,"[]"))||[];
             inventoryRecords = safeJson(lsGet(STORAGE_INVENTORY,"[]"))||[];
             transferRecords = safeJson(lsGet(STORAGE_TRANSFERS,"[]"))||[];
+            issueRecords = safeJson(lsGet(STORAGE_ISSUES,"[]"))||[];
             // 迁移到 IndexedDB
             await migrateToIDB();
         }
@@ -1530,10 +1565,12 @@ async function loadState(){
         if (configData) {
             exportSeqMap = configData.exportSeq || {};
             colVis = configData.colVis || {};
+            issueRecords = Array.isArray(configData.issueRecords) ? configData.issueRecords : [];
             if (configData.operator) document.getElementById("operatorInput").value = configData.operator;
         } else {
             exportSeqMap = safeJson(lsGet(STORAGE_EXPORT_SEQ,"{}"))||{};
             colVis = safeJson(lsGet(STORAGE_COL_VIS,"{}"))||{};
+            issueRecords = safeJson(lsGet(STORAGE_ISSUES,"[]"))||issueRecords;
             const op = lsGet(STORAGE_OPERATOR,"");
             if(op) document.getElementById("operatorInput").value = op;
         }
@@ -1552,6 +1589,7 @@ async function saveState(){
             operator: getOp(),
             exportSeq: exportSeqMap,
             colVis: colVis,
+            issueRecords,
             draft: {
                 rows, trash, logs: logs.slice(0,50),
                 snapshots: snapshots.slice(0,3),
@@ -1578,7 +1616,7 @@ async function saveState(){
         console.error('保存到 IndexedDB 失败，回退到 localStorage:', e);
         // 回退到 localStorage
         try{
-            const ok=lsSet(STORAGE_KEY,JSON.stringify(rows))&&lsSet(STORAGE_TRASH,JSON.stringify(trash))&&lsSet(STORAGE_LOGS,JSON.stringify(logs))&&lsSet(STORAGE_OPERATOR,getOp())&&lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap))&&lsSet(STORAGE_COL_VIS,JSON.stringify(colVis))&&lsSet(STORAGE_BORROWS,JSON.stringify(borrowRecords))&&lsSet(STORAGE_REPAIRS,JSON.stringify(repairRecords))&&lsSet(STORAGE_INVENTORY,JSON.stringify(inventoryRecords))&&lsSet(STORAGE_TRANSFERS,JSON.stringify(transferRecords));
+            const ok=lsSet(STORAGE_KEY,JSON.stringify(rows))&&lsSet(STORAGE_TRASH,JSON.stringify(trash))&&lsSet(STORAGE_LOGS,JSON.stringify(logs))&&lsSet(STORAGE_OPERATOR,getOp())&&lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap))&&lsSet(STORAGE_COL_VIS,JSON.stringify(colVis))&&lsSet(STORAGE_BORROWS,JSON.stringify(borrowRecords))&&lsSet(STORAGE_REPAIRS,JSON.stringify(repairRecords))&&lsSet(STORAGE_INVENTORY,JSON.stringify(inventoryRecords))&&lsSet(STORAGE_TRANSFERS,JSON.stringify(transferRecords))&&lsSet(STORAGE_ISSUES,JSON.stringify(issueRecords));
             lsSet(STORAGE_SNAPSHOTS,JSON.stringify(snapshots));
             return ok;
         }catch(e2){setSyncInfo("保存失败："+e2.message);return false}
@@ -1803,6 +1841,29 @@ getFiltered = function() {
         return true;
     });
 };
+
+/* ================================================================
+   ISSUE / BATCH STOCK
+   ================================================================ */
+function generateIssueId(){const d=todayYmd(),n=issueRecords.filter(x=>x.id?.startsWith(`OU-${d}`)).length+1;return `OU-${d}-${String(n).padStart(3,"0")}`}
+function openIssueForSelection(){if(selectedSet.size!==1){toast("请先在台账中选择一条资产后再领用","warn");return}openIssueModal([...selectedSet][0])}
+function openIssueModal(uidValue){
+    const row=rows.find(r=>r.uid===uidValue);if(!row)return;
+    const available=availableQty(row);if(available<1){toast("该资产当前没有可领用数量","warn");return}
+    document.getElementById("issueAssetHint").innerHTML=`<b>${esc(row.id)}</b> · ${esc([row.assetSubName,row.brand,row.model,memorySummary(row)||row.spec].filter(Boolean).join(" / "))}<br><span class="small">${isBatch(row)?`批次库存：可领 ${available} / 总计 ${totalQty(row)}`:"单件资产：可领 1 件"}</span>`;
+    document.getElementById("issueFormGrid").innerHTML=`<label>领用单号 <input id="issueId" value="${generateIssueId()}" readonly /></label><label>领用数量 <input id="issueQty" type="number" min="1" max="${available}" value="1" /></label><label>领用人 <input id="issueRecipient" value="${esc(getOp()==="系统"?"":getOp())}" placeholder="填写领用人" /></label><label>领用部门 <input id="issueDepartment" placeholder="可留空" /></label><label>领用日期 <input id="issueDate" type="date" value="${new Date().toISOString().slice(0,10)}" /></label><label>用途 <input id="issuePurpose" placeholder="领用用途" /></label><label style="grid-column:1 / -1;">备注 <textarea id="issueNote" rows="2" placeholder="可留空"></textarea></label><input id="issueAssetUid" type="hidden" value="${esc(uidValue)}" />`;
+    document.getElementById("issueMask").style.display="flex";
+}
+function saveIssue(){
+    const row=rows.find(r=>r.uid===document.getElementById("issueAssetUid")?.value);if(!row)return;
+    const qty=Math.max(1,parseInt(document.getElementById("issueQty").value||"0",10));const available=availableQty(row);
+    const recipient=document.getElementById("issueRecipient").value.trim(),date=document.getElementById("issueDate").value;
+    if(!recipient||!date){toast("请填写领用人和领用日期","warn");return}if(qty>available){toast(`可领数量只有 ${available} 件`,`warn`);return}
+    if(isBatch(row)){row.availableQty=String(available-qty);if(available-qty===0)row.status="已领用"}else{row.status="已领用";row.owner=recipient}
+    const record={id:document.getElementById("issueId").value,assetId:row.id,qty,recipient,department:document.getElementById("issueDepartment").value.trim(),issueDate:date,purpose:document.getElementById("issuePurpose").value.trim(),note:document.getElementById("issueNote").value.trim(),status:"已领用"};
+    issueRecords.unshift(record);addLog("领用",row,`${recipient} 领用 ${qty} 件（${record.id}）`);pushSnapshot("领用",`${row.id} 领用 ${qty} 件`);saveState();closeModal("issueMask");clearSel();renderAll();toast(`领用成功：${row.id} × ${qty}`,"success");
+}
+function useSimpleView(){const visible=["id","assetMainCode","assetSubCode","brand","model","spec","availableQty","status","location"];colVis={};COLUMNS.forEach(c=>colVis[c.key]=visible.includes(c.key));lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));renderTable();toast("已切换为简洁视图；可在“列设置”恢复或调整字段","success")}
 
 /* ================================================================
    BORROW MANAGEMENT
@@ -2309,7 +2370,10 @@ function renderCell(r,col){
     switch(col.type){
     case"mainCat": return `<td><select class="select-cell" onchange="updateMainCat('${r.uid}',this.value)">${renderMainOpts(r.assetMainCode)}</select></td>`;
     case"subCat": return `<td><select class="select-cell" onchange="updateSubCat('${r.uid}',this.value)">${renderSubOpts(r.assetMainCode,r.assetSubCode)}</select></td>`;
-    case"status": return `<td><div style="padding:6px 8px;display:flex;flex-direction:column;gap:6px;"><span class="status-tag ${statusCls(r.status)}">${esc(r.status||"待检测")}</span><select class="select-cell" onchange="updateField('${r.uid}','${col.key}',this.value)">${selOpts(STATUS_OPTIONS,r.status)}</select></div></td>`;
+    case"status": return `<td><div style="padding:6px 8px;display:flex;flex-direction:column;gap:6px;"><span class="status-tag ${statusCls(r.status)}">${esc(displayStatus(r))}</span>${isBatch(r)?'<span class="small">批次库存</span>':`<select class="select-cell" onchange="updateField('${r.uid}','${col.key}',this.value)">${selOpts(STATUS_OPTIONS,r.status)}</select>`}</div></td>`;
+    case"stock": return `<td><div class="stock-summary"><span>可用 ${availableQty(r)}</span><span class="out">已领 ${issuedQty(r)}</span><span class="total">总计 ${totalQty(r)}</span></div></td>`;
+    case"memory": return `<td>${esc(r.memoryStandard||"—")}</td>`;
+    case"assetSpec": return r.assetSubCode==="MEMORY"&&memorySummary(r)?`<td><div style="padding:8px;font-weight:700;font-size:12px;">${esc(memorySummary(r))}</div></td>`:`<td><input class="cell" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
     case"number": return `<td><input class="cell" type="number" min="1" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
     case"date": return `<td><input class="cell" type="date" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
     default: return `<td><input class="cell" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
@@ -2333,9 +2397,9 @@ function updateCellInDOM(uidValue,field,value){
 function renderStats(){
     document.getElementById("statTotalQty").textContent=sumQty(rows);
     document.getElementById("statRecord").textContent=rows.length;
-    document.getElementById("statIn").textContent=sumQty(rows.filter(r=>r.status==="在库"));
+    document.getElementById("statIn").textContent=rows.reduce((n,r)=>n+availableQty(r),0);
     document.getElementById("statWait").textContent=sumQty(rows.filter(r=>r.status==="待检测"));
-    document.getElementById("statUse").textContent=sumQty(rows.filter(r=>r.status==="已领用"));
+    document.getElementById("statUse").textContent=rows.reduce((n,r)=>n+issuedQty(r),0);
     document.getElementById("statDupId").textContent=getDupIds().length;
     document.getElementById("statDupSn").textContent=getDupSnCount();
     document.getElementById("statLogs").textContent=logs.length;
@@ -2384,7 +2448,7 @@ function selectionBar(){
     const cnt=selectedSet.size;if(!cnt){bar.style.display="none";return}
     bar.style.display="block";document.getElementById("selectedCount").textContent=cnt;
     const uid0=[...selectedSet][0];
-    if(cnt===1){title.textContent="操作";act.innerHTML=`<button class="btn-purple" onclick="openRowModal('edit','${uid0}')">编辑</button><button class="btn-soft" onclick="dupRow('${uid0}')">复制</button><button class="btn-orange" onclick="trashRowWithUndo('${uid0}')">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
+    if(cnt===1){title.textContent="操作";act.innerHTML=`<button class="btn-primary" onclick="openIssueModal('${uid0}')">⚡ 领用</button><button class="btn-purple" onclick="openRowModal('edit','${uid0}')">编辑</button><button class="btn-soft" onclick="dupRow('${uid0}')">复制</button><button class="btn-orange" onclick="trashRowWithUndo('${uid0}')">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
     else{title.textContent="多选批量操作";act.innerHTML=`<button class="btn-purple" onclick="openBulkEditModal()">批量修改</button><button class="btn-green" onclick="batchSetStatus('在库')">改：在库</button><button class="btn-orange" onclick="batchSetStatus('已领用')">改：已领用</button><button class="btn-orange" onclick="moveSelToTrash()">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
 }
 
@@ -2489,17 +2553,18 @@ function moveSelToTrash(){
    ================================================================ */
 function buildRowFormGrid(){
     return ROW_FORM_FIELDS.map(([elId,key,label,type,opts])=>{
-        if(type==="mainCat") return `<label>${label} <select id="${elId}" onchange="syncRowSubOpts();updateSuggestedAssetId();markDirty()"></select></label>`;
-        if(type==="subCat") return `<label>${label} <select id="${elId}" onchange="updateSuggestedAssetId();markDirty()"></select></label>`;
+        if(type==="mainCat") return `<label>${label} <select id="${elId}" onchange="syncRowSubOpts();toggleMemoryFields();updateSuggestedAssetId();markDirty()"></select></label>`;
+        if(type==="subCat") return `<label>${label} <select id="${elId}" onchange="updateSuggestedAssetId();toggleMemoryFields();markDirty()"></select></label>`;
         if(type==="select") return `<label>${label} <select id="${elId}" onchange="markDirty()">${selOpts(opts,opts[0])}</select></label>`;
         if(type==="textarea") return `<label style="grid-column:1 / -1;">${label} <textarea id="${elId}" rows="3" oninput="markDirty()"></textarea></label>`;
         if(type==="number") return `<label>${label} <input id="${elId}" type="number" min="1" value="1" oninput="markDirty()" /></label>`;
         if(type==="date") return `<label>${label} <input id="${elId}" type="date" oninput="updateSuggestedAssetId();markDirty()" /></label>`;
         const extra=key==="id"?' oninput="lastSuggestedId=\'\';checkDupIdLive(this);markDirty()"':' oninput="markDirty()"';
         return `<label>${label} <input id="${elId}" type="text"${extra} /></label>`;
-    }).join("");
+    }).join("")+`<div id="memoryFields" style="display:none;grid-column:1 / -1;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);"><div class="small" style="margin-bottom:8px;font-weight:800;">内存条固定规格（用于统一展示与 DDR3 → DDR5 排序）</div><div class="form-grid" style="grid-template-columns:repeat(4,1fr);"><label>内存代际 <select id="rowMemoryStandard" onchange="markDirty()"><option value="">请选择</option><option>DDR2</option><option>DDR3</option><option>DDR3L</option><option>DDR4</option><option>DDR5</option></select></label><label>容量 <select id="rowMemoryCapacity" onchange="markDirty()"><option value="">请选择</option><option>2GB</option><option>4GB</option><option>8GB</option><option>16GB</option><option>32GB</option><option>64GB</option><option>128GB</option></select></label><label>频率 <select id="rowMemorySpeed" onchange="markDirty()"><option value="">请选择</option><option>1333MHz</option><option>1600MHz</option><option>1866MHz</option><option>2133MHz</option><option>2400MHz</option><option>2666MHz</option><option>3200MHz</option><option>3600MHz</option><option>4800MHz</option><option>5600MHz</option></select></label><label>形态 <select id="rowMemoryForm" onchange="markDirty()"><option value="">请选择</option><option>UDIMM</option><option>SO-DIMM</option><option>RDIMM</option><option>ECC UDIMM</option></select></label></div></div>`;
 }
 function markDirty(){formDirty=true}
+function toggleMemoryFields(){const box=document.getElementById("memoryFields"),sub=document.getElementById("rowSubCategory")?.value;if(box)box.style.display=sub==="MEMORY"?"block":"none"}
 /* ── Unified subcategory sync ── */
 function syncSubSelect(mainId, subId, keepVal=true){
     const mc=document.getElementById(mainId)?.value||defMainCode();
@@ -2534,6 +2599,8 @@ function openRowModal(mode="add",uidValue=null){
         else if(type==="select"){el.value=row?row[key]||"":""}
         else{el.value=row?.[key]??(key==="qty"?"1":(mode==="add"&&key==="date"?new Date().toISOString().slice(0,10):""))}
     });
+    ["memoryStandard","memoryCapacity","memorySpeed","memoryForm"].forEach(key=>{const el=document.getElementById("row"+key[0].toUpperCase()+key.slice(1));if(el)el.value=row?.[key]||""});
+    toggleMemoryFields();
     lastSuggestedId="";if(mode==="add")updateSuggestedAssetId();
 }
 /* ── Unified modal close ── */
@@ -2548,6 +2615,8 @@ function saveRowModal(){
     let committed=false;
     try{
         const data={};ROW_FORM_FIELDS.forEach(([elId,key])=>{const el=document.getElementById(elId);data[key]=el?el.value.trim():""});
+        data.memoryStandard=document.getElementById("rowMemoryStandard")?.value||"";data.memoryCapacity=document.getElementById("rowMemoryCapacity")?.value||"";data.memorySpeed=document.getElementById("rowMemorySpeed")?.value||"";data.memoryForm=document.getElementById("rowMemoryForm")?.value||"";
+        const hasSn=!!(data.sn&&data.sn!=="无");data.inventoryMode=(!hasSn&&parseInt(data.qty||"1",10)>1)?"batch":"single";data.availableQty=data.inventoryMode==="batch"?data.qty:"1";
 
         // 数据校验
         const errors = validateRow(data);
@@ -2566,7 +2635,7 @@ function saveRowModal(){
             const row=rows.find(r=>r.uid===editingUid);if(!row)return;
             if(isDupId(data.id,row.uid)){alert(`编号 ${data.id} 已存在`);return}
             const main=getCat(data.assetMainCode||defMainCode()),sub=getSub(main.code,data.assetSubCode||defSubCode(main.code));
-            Object.assign(row,data,{assetMainName:main.name,assetSubName:sub.name});
+            const keepAvailable=isBatch(row)?availableQty(row):null;Object.assign(row,data,{assetMainName:main.name,assetSubName:sub.name});if(row.inventoryMode==="batch")row.availableQty=String(Math.min(parseInt(row.qty,10)||1,keepAvailable??parseInt(row.qty,10)||1));
             addLog("修改",row);sortRows();committed=true;
         }
         saveState();formDirty=false;
@@ -2762,7 +2831,7 @@ function downloadText(prefix,ext,content,mime,bom=false){
     addLog("导出",{id:"SYSTEM"},`下载：${fname}`);saveState();setSyncInfo(`已导出：${fname}`);
 }
 function rowsToCSV(list){return CSV_HEADERS.map(csvCell).join(",")+"\n"+list.map(r=>CSV_KEYS.map(k=>csvCell(r[k]||"")).join(",")).join("\n")}
-function exportAllJSON(){downloadText("ledger_all","json",JSON.stringify({rows:sorted(rows),trash,logs,snapshots},null,2),"application/json;charset=utf-8")}
+function exportAllJSON(){downloadText("ledger_all","json",JSON.stringify({rows:sorted(rows),trash,logs,snapshots,issueRecords},null,2),"application/json;charset=utf-8")}
 function exportAllCSV(){downloadText("ledger_all","csv",rowsToCSV(sorted(rows)),"text/csv;charset=utf-8",true)}
 function exportFilteredJSON(){downloadText("ledger_filtered","json",JSON.stringify({rows:sorted(getFiltered())},null,2),"application/json;charset=utf-8")}
 function exportFilteredCSV(){downloadText("ledger_filtered","csv",rowsToCSV(sorted(getFiltered())),"text/csv;charset=utf-8",true)}
@@ -2872,7 +2941,7 @@ async function refreshFolderStates(){
 async function uploadToSyncFile(){
     if(!syncDirHandle){alert("请先选择微盘同步文件夹");return false}
     if(!await ensurePerm(syncDirHandle)){alert("微盘没有写入权限");refreshFolderStates();return false}
-    try{const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots};const fh=await syncDirHandle.getFileHandle(FILE_NAME,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("上传微盘",{id:"SYSTEM"},`v${safeRemoteVersion}`);saveState();renderAll();refreshFolderStates();setSyncInfo(`已上传：v${safeRemoteVersion}`);alert("上传成功！");return true}catch(e){alert("上传失败："+e.message);return false}
+    try{const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots,issueRecords};const fh=await syncDirHandle.getFileHandle(FILE_NAME,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("上传微盘",{id:"SYSTEM"},`v${safeRemoteVersion}`);saveState();renderAll();refreshFolderStates();setSyncInfo(`已上传：v${safeRemoteVersion}`);alert("上传成功！");return true}catch(e){alert("上传失败："+e.message);return false}
 }
 async function loadFromSyncFile(){
     if(!syncDirHandle){alert("请先选择微盘文件夹");return}
@@ -2886,14 +2955,14 @@ async function loadFromSyncFile(){
         // 覆盖前先保存快照，以便回退
         pushSnapshot("微盘加载前备份", "从微盘加载前自动备份");
 
-        rows=normRows(raw.rows||[]);trash=normTrash(raw.trash||[]);logs=normLogs(raw.logs||[]);snapshots=normSnaps(raw.snapshots||[]);safeRemoteVersion=raw.version||0;
+        rows=normRows(raw.rows||[]);trash=normTrash(raw.trash||[]);logs=normLogs(raw.logs||[]);snapshots=normSnaps(raw.snapshots||[]);issueRecords=Array.isArray(raw.issueRecords)?raw.issueRecords:[];safeRemoteVersion=raw.version||0;
         migrateAll();ensureUniqueIds();sortRows();pushSnapshot("从微盘加载");saveState();renderAll();refreshFolderStates();setSyncInfo("已从微盘加载");alert("加载成功！")
     }catch(e){alert(`加载失败：${e.message}`)}
 }
 async function saveToBackupFile(){
     if(!backupDirHandle)return false;
     if(!await ensurePerm(backupDirHandle)){setSyncInfo("备份文件夹无权限");return false}
-    try{const fn=`${SAFE_BACKUP_PREFIX}_${todayYmd()}_${Date.now()}.json`;const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots};const fh=await backupDirHandle.getFileHandle(fn,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("备份",{id:"SYSTEM"},fn);saveState();refreshFolderStates();setSyncInfo(`已备份：${fn}`);return true}catch(e){setSyncInfo("备份失败："+e.message);return false}
+    try{const fn=`${SAFE_BACKUP_PREFIX}_${todayYmd()}_${Date.now()}.json`;const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots,issueRecords};const fh=await backupDirHandle.getFileHandle(fn,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("备份",{id:"SYSTEM"},fn);saveState();refreshFolderStates();setSyncInfo(`已备份：${fn}`);return true}catch(e){setSyncInfo("备份失败："+e.message);return false}
 }
 
 /* ================================================================
