@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>TI部资产管理系统 v2.0</title>
+<title>信息部资产管理系统 v2.1</title>
 <style>
 :root {
     --bg: #f8fafc; --surface: #ffffff; --surface-2: #fbfdff;
@@ -243,7 +243,8 @@ tbody tr.selected td { background: #eef6ff !important }
 /* ── Status Tags ── */
 .status-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; }
 .s-in { background:#dcfce7;color:#166534 } .s-wait { background:#ffedd5;color:#9a3412 }
-.s-use { background:#dbeafe;color:#1d4ed8 } .s-scrap { background:#e5e7eb;color:#334155 }
+.s-use { background:#dbeafe;color:#1d4ed8 } .s-borrow { background:#cffafe;color:#0e7490 }
+.s-repair { background:#fff7ed;color:#9a3412 } .s-scrap { background:#e5e7eb;color:#334155 }
 .s-sell { background:#ede9fe;color:#6d28d9 } .s-lost { background:#fee2e2;color:#b91c1c }
 
 .table-footer { padding: 11px 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 12px; background: #fff; }
@@ -289,6 +290,71 @@ body.label-print-mode .wrap>:not(#labelMask) { display: none !important }
 body.label-print-mode #labelMask { position: static; inset: auto; background: #fff; display: block !important; padding: 0; }
 body.label-print-mode .no-print { display: none !important }
 
+/* ── A4 资产入库单预览 ── */
+.receipt-modal { width: min(1500px,100%); max-height: 94vh; background: #eef2f7; }
+.receipt-workbench { overflow: auto; padding: 4px 0 12px; }
+.receipt-tip { margin: 0 0 10px; color: #475569; font-size: 12px; }
+.receipt-sheet { width: 297mm; min-height: 0; margin: 0 auto; padding: 7mm 8mm; background: #fff; color: #000; font-family: "Microsoft YaHei","SimSun",sans-serif; font-size: 10px; box-shadow: 0 4px 20px rgba(15,23,42,.18); overflow: hidden; }
+.receipt-company { text-align: center; font-size: 14px; font-weight: 800; margin: 0 0 2px; }
+.receipt-title { text-align: center; font-size: 22px; letter-spacing: 8px; font-weight: 800; margin: 0 0 5px; }
+.receipt-meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3px 12px; margin: 3px 0; align-items: end; }
+.receipt-meta.receipt-meta-two { grid-template-columns: 1fr 1fr; }
+.receipt-meta .right { text-align: right; }
+.receipt-edit { border: none; border-bottom: 1px solid #64748b; border-radius: 0; background: transparent; color: #000; font: inherit; outline: none; padding: 0 2px; min-width: 0; height: 17px; }
+.receipt-edit:focus { border-bottom: 2px solid #2563eb; background: #eff6ff; }
+.receipt-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 4px; font-size: 9px; line-height: 1.25; }
+.receipt-table th, .receipt-table td { border: 1px solid #000; padding: 2px 3px; text-align: center; height: 22px; vertical-align: middle; word-break: break-all; }
+.receipt-table th { font-weight: 800; background: #f3f4f6; }
+.receipt-table tr { break-inside: avoid; page-break-inside: avoid; }
+.receipt-table .left b { font-size: 10px; }
+.receipt-table .left span { color: #334155; font-size: 8px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+#receiptPreview .receipt-table { width: max-content !important; min-width: 0 !important; max-width: none !important; table-layout: auto !important; }
+#receiptPreview .receipt-table th, #receiptPreview .receipt-table td { width: auto !important; white-space: nowrap; }
+#receiptPreview .receipt-table .receipt-edit { width: 8ch !important; min-width: 0 !important; }
+#receiptCompany { width: 22ch; }
+#receiptDept { width: 5ch; }
+#receiptDate { width: 11ch; }
+#receiptNo { width: 16ch; }
+#receiptSupplier { width: 14ch !important; }
+#receiptContract { width: 10ch !important; }
+#receiptHandler, #receiptMaker, #receiptChecker, #receiptKeeper, #receiptLeader { width: 8ch; }
+/* 平衡版：整表铺满 A4 可用宽度，列宽由内容自动分配，不做平均拉伸。 */
+#receiptPreview .receipt-table { width: 100% !important; min-width: 0 !important; max-width: 100% !important; table-layout: auto !important; }
+#receiptCompany { width: 30ch; }
+#receiptDept { width: 8ch; }
+#receiptNo { width: 20ch; }
+#receiptSupplier { width: 22ch !important; }
+#receiptContract { width: 16ch !important; }
+#receiptHandler, #receiptMaker, #receiptChecker, #receiptKeeper, #receiptLeader { width: 12ch; }
+#outboundDepartment, #outboundRecipient, #outboundHandler, #outboundRecipientSign { width: 12ch; }
+#receiptPreview .receipt-table th:nth-child(4), #receiptPreview .receipt-table td:nth-child(4) { width: 24ch !important; max-width: 24ch; overflow: hidden; text-overflow: ellipsis; }
+#receiptPreview .receipt-table th:nth-child(6), #receiptPreview .receipt-table td:nth-child(6) { width: auto !important; min-width: 0 !important; }
+#receiptPreview .receipt-table th:nth-child(7), #receiptPreview .receipt-table td:nth-child(7) { min-width: 30ch !important; }
+#receiptPreview .receipt-table td:nth-child(7) .receipt-edit { width: 100% !important; max-width: none !important; }
+#receiptPreview .receipt-table .outbound-purpose { width: 16ch !important; }
+@media screen {
+    .receipt-modal { padding: 10px; }
+    .receipt-workbench { width: 100%; overflow: auto; }
+    .receipt-sheet { width: 297mm; max-width: none; margin: 0; }
+    .receipt-table { width: fit-content; max-width: none; table-layout: auto; }
+    .receipt-table th[style] { width: auto !important; }
+    .receipt-table th, .receipt-table td { white-space: nowrap; }
+    .receipt-table th:nth-child(4), .receipt-table td:nth-child(4) { max-width: 38ch; overflow: hidden; text-overflow: ellipsis; }
+    .receipt-table .receipt-edit { width: 8ch; min-width: 0; }
+}
+.receipt-table .left { text-align: left; }
+.receipt-table .receipt-edit { width: 8ch; min-width: 0; text-align: center; }
+.receipt-summary { border: 1px solid #000; border-top: 0; display: flex; justify-content: space-between; gap: 10px; padding: 4px 6px; font-weight: 700; }
+.receipt-sign { display: grid; grid-template-columns: repeat(4,1fr); gap: 15px; margin-top: 12px; }
+.receipt-sign .receipt-edit { width: 8ch; }
+.receipt-sign.outbound-sign { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 460px; }
+.receipt-foot { margin-top: 6px; text-align: right; color: #475569; font-size: 9px; }
+body.receipt-print-mode .wrap, body.receipt-print-mode .toast-container, body.receipt-print-mode .ctx-menu { display: none !important; }
+body.receipt-print-mode #receiptMask { position: static; display: block !important; background: #fff; padding: 0; overflow: visible; }
+body.receipt-print-mode #receiptMask .receipt-modal { width: auto; max-height: none; padding: 0; border: 0; box-shadow: none; overflow: visible; background: #fff; }
+body.receipt-print-mode .no-print { display: none !important; }
+@media print { @page { size: A4 landscape; margin: 0; } body.receipt-print-mode .receipt-sheet { width: 297mm; min-height: 0; margin: 0; padding: 7mm 8mm; box-shadow: none; } body.receipt-print-mode .receipt-table { width: 100% !important; table-layout: auto; } body.receipt-print-mode .receipt-table th[style] { width: auto !important; } }
+
 /* ── File Input ── */
 .file-input { display: none }
 
@@ -325,6 +391,22 @@ body.dark .more-menu-list button:hover { background: #334155; }
 .shortcut-kbd { display: inline-block; padding: 1px 6px; border-radius: 4px; background: #e5e7eb; color: #374151; font-size: 10px; font-weight: 700; font-family: monospace; margin: 0 2px; }
 body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
 
+/* ── Pagination ── */
+.pagination { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--line); }
+.page-info { font-size: 12px; color: var(--muted); font-weight: 600; }
+.page-size-select { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.page-size-select select { padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 12px; cursor: pointer; }
+.page-btns { display: flex; gap: 4px; align-items: center; }
+.page-btn { padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.page-btn:hover:not(:disabled) { background: #f1f5f9; border-color: var(--line-strong); }
+.page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.page-ellipsis { padding: 0 4px; color: var(--muted); }
+body.dark .page-btn { background: var(--surface); border-color: var(--line); color: var(--text); }
+body.dark .page-btn:hover:not(:disabled) { background: #334155; }
+body.dark .page-btn.active { background: var(--primary); color: #fff; }
+body.dark .page-size-select select { background: var(--surface); border-color: var(--line); color: var(--text); }
+
 /* Toast */
 .toast-container { position: fixed; top: 18px; right: 18px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .toast { padding: 12px 20px; border-radius: 12px; font-size: 13px; font-weight: 700; color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.16); animation: toastIn .3s ease; pointer-events: auto; max-width: 400px; cursor: pointer; }
@@ -335,6 +417,14 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
 .toast.removing { animation: toastOut .3s ease forwards; }
 @keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
 @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
+
+/* ── 更新说明 ── */
+.release-notes { display: grid; gap: 12px; color: var(--text); line-height: 1.7; }
+.release-notes .release-intro { margin: 0; color: var(--muted); font-size: 13px; }
+.release-notes section { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface-2); }
+.release-notes h4 { margin: 0 0 6px; font-size: 14px; }
+.release-notes ul { margin: 0; padding-left: 20px; font-size: 13px; }
+.release-notes .release-version { color: var(--primary); font-weight: 800; }
 
 /* ── Responsive ── */
 @media (max-width:1200px) {
@@ -386,12 +476,13 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     <!-- TOP BAR -->
     <div class="topbar">
         <div class="brand">
-            <h1>TI部资产管理系统</h1>
-            <p>v2.0 — 支持资产台账管理、状态跟踪、导入导出、标签打印 | 快捷键：<span class="shortcut-kbd">Ctrl+N</span> 新增 <span class="shortcut-kbd">Ctrl+S</span> 保存 <span class="shortcut-kbd">Ctrl+F</span> 搜索 <span class="shortcut-kbd">Del</span> 删除 <span class="shortcut-kbd">Esc</span> 取消</p>
+            <h1>信息部资产管理系统</h1>
+            <p>v2.1 — 支持新编号规则、资产入库单、状态跟踪、导入导出、标签打印 | 快捷键：<span class="shortcut-kbd">Ctrl+N</span> 新增 <span class="shortcut-kbd">Ctrl+S</span> 保存 <span class="shortcut-kbd">Ctrl+F</span> 搜索 <span class="shortcut-kbd">Del</span> 删除 <span class="shortcut-kbd">Esc</span> 取消</p>
         </div>
         <div class="actions actions-compact no-print">
             <button class="btn-primary" onclick="saveNow()">💾 立即保存</button>
             <button class="btn-secondary" onclick="uploadToSyncFile()">☁ 上传微盘</button>
+            <button class="btn-secondary" onclick="openReleaseNotes()" title="查看本次中文更新说明" aria-label="查看更新说明">📘</button>
             <button class="btn-secondary" id="darkToggle" onclick="toggleDark()" title="切换暗色模式">🌙</button>
             <details class="more-menu">
                 <summary>更多</summary>
@@ -411,6 +502,8 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
                     <button onclick="triggerImportCSV()">导入 CSV</button>
                     <button onclick="openLabelPrint()">打印标签</button>
                     <button onclick="printFilteredList()">打印清单</button>
+                    <button class="btn-green" onclick="printInboundReceipt()">预览资产入库单</button>
+                    <button class="btn-orange" onclick="printOutboundReceipt()">预览资产出库单</button>
                     <button class="btn-green" onclick="window.print()">打印页面</button>
                     <button class="btn-danger" onclick="resetDemo()">恢复示例</button>
                 </div>
@@ -436,11 +529,40 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     <!-- TOOLBAR -->
     <div class="toolbar no-print">
         <div class="field"><label>🔍 搜索 (Ctrl+F)</label><input id="searchInput" type="text" placeholder="搜索编号、品牌、型号、位置、备注..." oninput="onFilterChange()" /></div>
-        <div class="field"><label>状态筛选</label><select id="statusFilter" onchange="onFilterChange()"><option value="">全部状态</option><option value="在库">在库</option><option value="待检测">待检测</option><option value="已领用">已领用</option><option value="已报废">已报废</option><option value="已出售">已出售</option><option value="已丢失">已丢失</option></select></div>
+        <div class="field"><label>状态筛选</label><select id="statusFilter" onchange="onFilterChange()"><option value="">全部状态</option><option value="在库">在库</option><option value="待检测">待检测</option><option value="已领用">已领用</option><option value="已借出">已借出</option><option value="维修中">维修中</option><option value="已报废">已报废</option><option value="已出售">已出售</option><option value="已丢失">已丢失</option></select></div>
         <div class="field"><label>资产大类</label><select id="mainCategoryFilter" onchange="syncSubFilter();onFilterChange()"><option value="">全部大类</option><option value="SYSTEM_UNIT">整机设备</option><option value="PARTS_UNIT">计算部件</option><option value="OFFICE_UNIT">外设与办公</option><option value="NETWORK_UNIT">网络与通讯</option><option value="TOOLS_UNIT">运维工具与仪表</option><option value="MATERIAL_UNIT">备品备件与耗材</option><option value="OTHER_UNIT">其他</option></select></div>
         <div class="field"><label>资产子类</label><select id="subCategoryFilter" onchange="onFilterChange()"><option value="">全部子类</option></select></div>
         <div class="field"><label>当前操作人</label><input id="operatorInput" type="text" value="系统" oninput="saveAllDebounced();renderLogs();" /></div>
         <div class="field"><label>同步状态</label><div class="small" id="syncInfo">未选择微盘同步文件夹</div></div>
+        <div class="field" style="display:flex;align-items:flex-end;"><button class="btn-soft" onclick="toggleAdvancedSearch()">🔍 高级搜索</button></div>
+    </div>
+
+    <!-- ADVANCED SEARCH PANEL -->
+    <div id="advancedSearchPanel" class="panel no-print" style="display:none;margin-top:12px;">
+        <div class="panel-head">
+            <div class="title">🔍 高级搜索</div>
+            <div class="actions">
+                <button class="btn-soft" onclick="resetAdvancedSearch()">重置</button>
+                <button class="btn-primary" onclick="applyAdvancedSearch()">应用筛选</button>
+                <button class="btn-cancel" onclick="toggleAdvancedSearch()">关闭</button>
+            </div>
+        </div>
+        <div style="padding:14px;">
+            <div class="form-grid" style="grid-template-columns:repeat(3,1fr);">
+                <label>品牌 <input id="advBrand" type="text" placeholder="模糊匹配" /></label>
+                <label>型号 <input id="advModel" type="text" placeholder="模糊匹配" /></label>
+                <label>规格 <input id="advSpec" type="text" placeholder="模糊匹配" /></label>
+                <label>序列号 <input id="advSn" type="text" placeholder="精确匹配" /></label>
+                <label>存放位置 <input id="advLocation" type="text" placeholder="模糊匹配" /></label>
+                <label>责任人 <input id="advOwner" type="text" placeholder="模糊匹配" /></label>
+                <label>入库日期 从 <input id="advDateFrom" type="date" /></label>
+                <label>入库日期 到 <input id="advDateTo" type="date" /></label>
+                <label>检测结果 <select id="advCheck"><option value="">全部</option><option value="待测">待测</option><option value="正常">正常</option><option value="异常">异常</option></select></label>
+                <label>数量 从 <input id="advQtyFrom" type="number" min="1" placeholder="最小" /></label>
+                <label>数量 到 <input id="advQtyTo" type="number" min="1" placeholder="最大" /></label>
+                <label>备注 <input id="advNote" type="text" placeholder="模糊匹配" /></label>
+            </div>
+        </div>
     </div>
 
     <!-- QUICK FILTERS -->
@@ -450,6 +572,8 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
         <button class="pill-btn" data-filter="in_stock" onclick="applyQuickFilter('in_stock')">在库</button>
         <button class="pill-btn" data-filter="pending" onclick="applyQuickFilter('pending')">待检测</button>
         <button class="pill-btn" data-filter="in_use" onclick="applyQuickFilter('in_use')">已领用</button>
+        <button class="pill-btn" data-filter="borrowed" onclick="applyQuickFilter('borrowed')">已借出</button>
+        <button class="pill-btn" data-filter="repairing" onclick="applyQuickFilter('repairing')">维修中</button>
         <span class="sep"></span>
         <button class="pill-btn" data-filter="my" onclick="applyQuickFilter('my')">👤 我的</button>
         <button class="pill-btn" data-filter="month" onclick="applyQuickFilter('month')">📅 本月入库</button>
@@ -459,7 +583,7 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     </div>
 
     <!-- FOLDER STATE -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="folderStatePanel">
         <summary class="fold-head"><span>📁 文件夹状态</span><span class="fold-tip">点击折叠 / 展开</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -476,11 +600,11 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
 
     <!-- CHARTS -->
     <div class="charts">
-        <details class="fold-panel chart-fold">
+        <details class="fold-panel chart-fold" id="statusChartPanel">
             <summary class="fold-head"><span>状态分布</span><span class="fold-tip">点击折叠</span></summary>
             <div class="fold-body"><div id="statusChart" class="bar-chart"></div></div>
         </details>
-        <details class="fold-panel chart-fold">
+        <details class="fold-panel chart-fold" id="typeChartPanel">
             <summary class="fold-head"><span>类别分布</span><span class="fold-tip">点击折叠</span></summary>
             <div class="fold-body"><div id="typeChart" class="bar-chart"></div></div>
         </details>
@@ -508,6 +632,7 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
         </div>
         <div class="col-vis-panel no-print" id="colVisPanel" style="display:none;"></div>
         <div class="table-wrap"><table id="ledgerTable"><thead id="tableHead"></thead><tbody id="tableBody"></tbody></table></div>
+        <div id="paginationContainer"></div>
         <div class="table-footer">
             <div>建议：删除先进回收站；涉及报废出售丢失等状态请保留日志。<span id="saveFreshness" style="color:var(--muted-2);margin-left:10px;font-size:11px;"></span></div>
             <div id="countInfo">当前显示 0 条 / 共 0 条</div>
@@ -518,7 +643,7 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     </div>
 
     <!-- LOGS -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="logsPanel">
         <summary class="fold-head"><span>操作日志</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="hint" style="margin-bottom:10px;">自动记录新增、删除、状态变更、字段修改。v2.0 支持字段级diff。</div>
@@ -527,7 +652,7 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     </details>
 
     <!-- TRASH -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="trashPanel">
         <summary class="fold-head"><span>回收站</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -538,8 +663,108 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
         </div>
     </details>
 
+    <!-- BORROW MANAGEMENT -->
+    <details class="fold-panel" id="borrowPanel">
+        <summary class="fold-head"><span>📋 借用管理</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">资产借用登记、归还确认、借用历史查询。</div>
+                <div class="actions no-print">
+                    <button class="btn-soft" onclick="openBorrowModal()">新增借用</button>
+                    <button class="btn-soft" onclick="renderBorrowRecords()">刷新</button>
+                </div>
+            </div>
+            <div class="log-body"><table style="min-width:1200px;"><thead><tr>
+                <th style="width:120px;">借用编号</th>
+                <th style="width:120px;">资产编号</th>
+                <th style="width:100px;">借用人</th>
+                <th style="width:120px;">借用日期</th>
+                <th style="width:120px;">预计归还</th>
+                <th style="width:120px;">实际归还</th>
+                <th style="width:100px;">状态</th>
+                <th style="width:150px;">用途</th>
+                <th style="width:150px;">操作</th>
+            </tr></thead><tbody id="borrowBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <!-- REPAIR RECORDS -->
+    <details class="fold-panel" id="repairPanel">
+        <summary class="fold-head"><span>🔧 维修记录</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">资产维修登记、维修状态跟踪、维修历史查询。</div>
+                <div class="actions no-print">
+                    <button class="btn-soft" onclick="openRepairModal()">新增维修</button>
+                    <button class="btn-soft" onclick="renderRepairRecords()">刷新</button>
+                </div>
+            </div>
+            <div class="log-body"><table style="min-width:1200px;"><thead><tr>
+                <th style="width:120px;">维修编号</th>
+                <th style="width:120px;">资产编号</th>
+                <th style="width:100px;">维修类型</th>
+                <th style="width:120px;">送修日期</th>
+                <th style="width:120px;">完成日期</th>
+                <th style="width:100px;">状态</th>
+                <th style="width:100px;">费用</th>
+                <th style="width:100px;">维修人</th>
+                <th style="width:150px;">故障描述</th>
+                <th style="width:150px;">操作</th>
+            </tr></thead><tbody id="repairBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <!-- ASSET TRANSFER -->
+    <details class="fold-panel" id="transferPanel">
+        <summary class="fold-head"><span>🔄 资产转移</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">资产位置变更、责任人变更记录。</div>
+                <div class="actions no-print">
+                    <button class="btn-soft" onclick="openTransferModal()">新增转移</button>
+                    <button class="btn-soft" onclick="renderTransferRecords()">刷新</button>
+                </div>
+            </div>
+            <div class="log-body"><table style="min-width:1200px;"><thead><tr>
+                <th style="width:120px;">转移编号</th>
+                <th style="width:120px;">资产编号</th>
+                <th style="width:120px;">转移日期</th>
+                <th style="width:120px;">原位置</th>
+                <th style="width:120px;">新位置</th>
+                <th style="width:100px;">原责任人</th>
+                <th style="width:100px;">新责任人</th>
+                <th style="width:150px;">转移原因</th>
+                <th style="width:100px;">操作人</th>
+            </tr></thead><tbody id="transferBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <!-- INVENTORY MANAGEMENT -->
+    <details class="fold-panel" id="inventoryPanel">
+        <summary class="fold-head"><span>📦 资产盘点</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">资产盘点计划、盘点执行、差异报告。</div>
+                <div class="actions no-print">
+                    <button class="btn-soft" onclick="startNewInventory()">开始盘点</button>
+                    <button class="btn-soft" onclick="renderInventoryRecords()">刷新</button>
+                </div>
+            </div>
+            <div class="log-body"><table style="min-width:1200px;"><thead><tr>
+                <th style="width:120px;">盘点编号</th>
+                <th style="width:120px;">计划日期</th>
+                <th style="width:120px;">执行日期</th>
+                <th style="width:100px;">盘点人</th>
+                <th style="width:100px;">状态</th>
+                <th style="width:100px;">资产总数</th>
+                <th style="width:100px;">差异项</th>
+                <th style="width:150px;">操作</th>
+            </tr></thead><tbody id="inventoryBody"></tbody></table></div>
+        </div>
+    </details>
+
     <!-- SAFE HISTORY -->
-    <details class="fold-panel">
+    <details class="fold-panel" id="safeHistoryPanel">
         <summary class="fold-head"><span>安全留痕 / 历史版本</span><span class="fold-tip">点击折叠</span></summary>
         <div class="fold-body">
             <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
@@ -555,6 +780,18 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
 </div>
 
 <!-- ─── MODALS ─── -->
+<div id="releaseNotesMask" class="mask" onclick="if(event.target===this)closeModal('releaseNotesMask')"><div class="modal" style="width:min(760px,100%);">
+    <div class="modal-head"><h3>📘 更新说明</h3><button class="btn-danger" onclick="closeModal('releaseNotesMask')">关闭</button></div>
+    <div class="release-notes">
+        <p class="release-intro"><span class="release-version">v2.1 优化版</span> · 本说明随系统页面发布，可随时点击顶栏的 📘 图标查看。</p>
+        <section><h4>资产操作与状态管理</h4><ul><li>新增借用登记、归还、维修登记、维修完成、资产转移和盘点记录。</li><li>补充已借出、维修中、已出售、已丢失等状态，方便跟踪资产全生命周期。</li><li>新增资产编号建议、必填字段校验和重复编号/序列号检查，减少录入错误。</li></ul></section>
+        <section><h4>检索与台账体验</h4><ul><li>新增高级搜索，可按品牌、型号、规格、序列号、位置、责任人、日期、数量及检测结果组合筛选。</li><li>新增分页与每页条数选择；较大台账浏览更流畅。</li><li>支持保存并恢复折叠面板状态，常用操作区域更易管理。</li></ul></section>
+        <section><h4>单据与导出</h4><ul><li>新增横向 A4 资产入库单、出库单预览与打印，支持填写公司、来源、领用人、用途和签字信息。</li><li>导出 Excel 时会清理可能被表格软件当作公式执行的内容，提升数据安全性。</li></ul></section>
+        <section><h4>使用提示</h4><ul><li>系统数据仍保存在浏览器本地；请定期通过“更多”菜单导出 JSON 或 Excel 备份。</li><li>点击“☁ 上传微盘”前，请确认已授权同步文件夹。</li></ul></section>
+    </div>
+    <div class="modal-actions"><button class="btn-primary" onclick="closeModal('releaseNotesMask')">我知道了</button></div>
+</div></div>
+
 <div id="rowMask" class="mask"><div class="modal">
     <div class="modal-head"><h3 id="rowModalTitle">新增资产</h3><button class="btn-danger" onclick="closeModal('rowMask')">关闭</button></div>
     <div class="form-grid" id="rowFormGrid"></div>
@@ -604,6 +841,33 @@ body.dark .shortcut-kbd { background: #475569; color: #e2e8f0; }
     <div id="labelContainer" class="label-grid"></div>
 </div></div>
 
+<div id="receiptMask" class="mask"><div class="modal receipt-modal">
+    <div class="modal-head no-print"><div><h3 id="receiptModalTitle" style="margin:0;">资产入库单预览 · 紧凑版</h3><div id="receiptModalHint" class="small">请先在资产台账左侧勾选条目；可在下方表单中补充来源和签字信息。</div></div><button class="btn-danger" onclick="closeReceiptPreview()">关闭</button></div>
+    <div class="receipt-workbench"><div id="receiptPreview"></div></div>
+    <div class="modal-actions no-print"><button class="btn-secondary" onclick="closeReceiptPreview()">返回台账</button><button class="btn-primary" onclick="printReceiptPreview()">确认并打印</button></div>
+</div></div>
+
+<!-- Borrow Modal -->
+<div id="borrowMask" class="mask"><div class="modal">
+    <div class="modal-head"><h3>📋 借用登记</h3><button class="btn-danger" onclick="closeBorrowModal()">关闭</button></div>
+    <div class="form-grid" id="borrowFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeBorrowModal()">取消</button><button class="btn-primary" onclick="saveBorrow()">确认借用</button></div>
+</div></div>
+
+<!-- Repair Modal -->
+<div id="repairMask" class="mask"><div class="modal">
+    <div class="modal-head"><h3>🔧 维修登记</h3><button class="btn-danger" onclick="closeRepairModal()">关闭</button></div>
+    <div class="form-grid" id="repairFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeRepairModal()">取消</button><button class="btn-primary" onclick="saveRepair()">确认登记</button></div>
+</div></div>
+
+<!-- Transfer Modal -->
+<div id="transferMask" class="mask"><div class="modal">
+    <div class="modal-head"><h3>🔄 资产转移</h3><button class="btn-danger" onclick="closeTransferModal()">关闭</button></div>
+    <div class="form-grid" id="transferFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeTransferModal()">取消</button><button class="btn-primary" onclick="saveTransfer()">确认转移</button></div>
+</div></div>
+
 <!-- ═══════════════ JAVASCRIPT ═══════════════ -->
 <script>
 /* ================================================================
@@ -618,12 +882,40 @@ const STORAGE_OPERATOR = "ti_asset_db_operator_v4";
 const STORAGE_EXPORT_SEQ = "ti_asset_db_exportseq_v4";
 const STORAGE_DRAFT = "ti_asset_db_draft_v4";
 const STORAGE_COL_VIS = "ti_asset_db_colvis_v4";
+const STORAGE_BORROWS = "ti_asset_db_borrows_v4";
+const STORAGE_REPAIRS = "ti_asset_db_repairs_v4";
+const STORAGE_INVENTORY = "ti_asset_db_inventory_v4";
+const STORAGE_TRANSFERS = "ti_asset_db_transfers_v4";
 const DB_NAME = "ti_asset_db_handles";
 const DB_STORE = "handles";
 const FILE_NAME = "ledger.json";
 const SAFE_BACKUP_PREFIX = "ledger_backup";
 const MAX_LOGS_KEEP = 180;
 const MAX_SNAPSHOTS_KEEP = 10;
+const DEFAULT_DEPARTMENT = "信息部";
+const ASSET_PREFIX_RULES = {
+    SYSTEM_UNIT:"DN", PARTS_UNIT:"DN", OFFICE_UNIT:"WS",
+    NETWORK_UNIT:"WL", TOOLS_UNIT:"GJ", MATERIAL_UNIT:"HC", OTHER_UNIT:"QT"
+};
+
+// IndexedDB 配置
+const IDB_DB_NAME = "ti_asset_manager";
+const IDB_DB_VERSION = 3;
+const IDB_STORES = {
+    rows: "asset_rows",
+    trash: "asset_trash",
+    logs: "asset_logs",
+    snapshots: "asset_snapshots",
+    config: "asset_config",
+    borrows: "asset_borrows",
+    repairs: "asset_repairs",
+    inventory: "asset_inventory",
+    transfers: "asset_transfers"
+};
+
+// 分页配置
+const PAGE_SIZE_OPTIONS = [20, 50, 100, 200];
+const DEFAULT_PAGE_SIZE = 50;
 
 const DEFAULT_CATEGORY_TREE = [
     { code:"SYSTEM_UNIT", name:"整机设备", subs:[
@@ -657,7 +949,15 @@ const STORAGE_CAT = "ti_asset_cat_tree_v1";
 let CATEGORY_TREE = JSON.parse(JSON.stringify(DEFAULT_CATEGORY_TREE));
 let CAT_MAP = {};
 function rebuildCatMap(){CAT_MAP=Object.fromEntries(CATEGORY_TREE.map(x=>[x.code,x]))}
-function loadCatTree(){try{const saved=safeJson(lsGet(STORAGE_CAT,""));if(saved&&Array.isArray(saved)&&saved.length){CATEGORY_TREE=saved}}catch(e){}rebuildCatMap()}
+function loadCatTree(){
+    try{
+        const saved=safeJson(lsGet(STORAGE_CAT,""));if(saved&&Array.isArray(saved)&&saved.length){CATEGORY_TREE=saved}
+        // 清理本次优化早期误加入的预置分类，不影响用户通过“自定义分类”建立的条目。
+        let changed=false;CATEGORY_TREE.forEach(main=>{const before=main.subs.length;main.subs=main.subs.filter(sub=>sub.code!=="CABLE_TRACER"&&sub.code!=="HAND_TOOL");if(main.subs.length!==before)changed=true});
+        if(changed)lsSet(STORAGE_CAT,JSON.stringify(CATEGORY_TREE));
+    }catch(e){}
+    rebuildCatMap()
+}
 function saveCatTree(){lsSet(STORAGE_CAT,JSON.stringify(CATEGORY_TREE));rebuildCatMap();syncMainFilterOpts()}
 
 /* ── Category Manager ── */
@@ -751,6 +1051,8 @@ const STATUSES = [
     {value:"在库", cls:"s-in", color:"#16a34a"},
     {value:"待检测", cls:"s-wait", color:"#f59e0b"},
     {value:"已领用", cls:"s-use", color:"#2563eb"},
+    {value:"已借出", cls:"s-borrow", color:"#0891b2"},
+    {value:"维修中", cls:"s-repair", color:"#ea580c"},
     {value:"已报废", cls:"s-scrap", color:"#64748b"},
     {value:"已出售", cls:"s-sell", color:"#8b5cf6"},
     {value:"已丢失", cls:"s-lost", color:"#ef4444"}
@@ -810,11 +1112,29 @@ let exportSeqMap={};
 let syncDirHandle=null, backupDirHandle=null;
 let safeRemoteVersion=0;
 let idReserveSet=new Set();
+let lastSuggestedId="";
 let sortAsc=true, sortKey="id";
 let colVis = {};            // {colKey: true/false}
 let quickFilter = "all";
 let formDirty = false;          // 弹窗表单是否有未保存修改
 let pendingImport = null;       // 待确认的导入数据
+
+// 分页状态
+let currentPage = 1;
+let pageSize = DEFAULT_PAGE_SIZE;
+let filteredCache = [];  // 缓存筛选结果
+
+// 借用记录
+let borrowRecords = [];  // {id, assetId, borrower, borrowDate, expectedReturnDate, actualReturnDate, purpose, status, note}
+
+// 维修记录
+let repairRecords = [];  // {id, assetId, repairDate, repairType, description, cost, repairer, status, completionDate, note}
+
+// 盘点记录
+let inventoryRecords = [];  // {id, planDate, actualDate, operator, status, items: [{assetId, expected, actual, difference, note}]}
+
+// IndexedDB 实例
+let idb = null;
 
 /* ================================================================
    UTILITIES
@@ -822,20 +1142,185 @@ let pendingImport = null;       // 待确认的导入数据
 const uid = () => (window.crypto?.randomUUID?.() || "uid-"+Date.now()+"-"+Math.random().toString(16).slice(2));
 const clone = v => JSON.parse(JSON.stringify(v));
 const esc = str => (str??"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-const csvCell = v => `"${(v??"").toString().replace(/"/g,'""')}"`;
-const padNo = n => String(n).padStart(4,"0");
-const fmtNo = n => `PA-${padNo(n)}`;
-const parseNo = id => { const m=(id||"").toString().trim().match(/^PA-(\d{4,})$/i); return m?parseInt(m[1],10):NaN; };
+const csvCell = v => {
+    let s = (v??"").toString().replace(/"/g,'""');
+    // 防止Excel公式注入：对以特殊字符开头的内容添加单引号前缀
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return `"${s}"`;
+};
+const assetPrefix = (mainCode,subCode) => subCode==="MONITOR" ? "PM" : (ASSET_PREFIX_RULES[mainCode]||"QT");
+const normalizeIdDate = value => {
+    const s=(value||"").toString().replace(/-/g,"");
+    return /^\d{8}$/.test(s)?s:todayYmd();
+};
+const parseNo = id => {
+    const s=(id||"").toString().trim().toUpperCase();
+    const current=s.match(/^([A-Z]{2})(\d{8})(\d{2,})$/);
+    if(current)return {legacy:false,prefix:current[1],date:current[2],seq:parseInt(current[3],10),raw:s};
+    const legacy=s.match(/^PA-(\d{4,})$/);
+    return legacy?{legacy:true,prefix:"PA",date:"00000000",seq:parseInt(legacy[1],10),raw:s}:null;
+};
 const sumQty = list => list.reduce((a,r)=>a+(parseFloat(r.qty)||0),0);
 const todayYmd = (d=new Date()) => { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0"); return `${y}${m}${day}`; };
 const statusCls = s => (STATUS_MAP[s]||{cls:"s-wait"}).cls;
 const getOp = () => (document.getElementById("operatorInput")?.value||"").trim()||"系统";
 
+/* ================================================================
+   IndexedDB 存储层
+   ================================================================ */
+function openIDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(IDB_DB_NAME, IDB_DB_VERSION);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            Object.values(IDB_STORES).forEach(storeName => {
+                if (!db.objectStoreNames.contains(storeName)) {
+                    db.createObjectStore(storeName, { keyPath: 'id' });
+                }
+            });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function idbGet(storeName, key) {
+    if (!idb) idb = await openIDB();
+    return new Promise((resolve, reject) => {
+        const tx = idb.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result?.value ?? null);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function idbSet(storeName, key, value) {
+    if (!idb) idb = await openIDB();
+    return new Promise((resolve, reject) => {
+        const tx = idb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const req = store.put({ id: key, value });
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function idbDelete(storeName, key) {
+    if (!idb) idb = await openIDB();
+    return new Promise((resolve, reject) => {
+        const tx = idb.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        const req = store.delete(key);
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+// 从 localStorage 迁移到 IndexedDB
+async function migrateToIDB() {
+    try {
+        const stores = [
+            { ls: STORAGE_KEY, idb: IDB_STORES.rows },
+            { ls: STORAGE_TRASH, idb: IDB_STORES.trash },
+            { ls: STORAGE_LOGS, idb: IDB_STORES.logs },
+            { ls: STORAGE_SNAPSHOTS, idb: IDB_STORES.snapshots },
+            { ls: STORAGE_BORROWS, idb: IDB_STORES.borrows },
+            { ls: STORAGE_REPAIRS, idb: IDB_STORES.repairs },
+            { ls: STORAGE_INVENTORY, idb: IDB_STORES.inventory },
+            { ls: STORAGE_TRANSFERS, idb: IDB_STORES.transfers }
+        ];
+        for (const { ls, idb: storeName } of stores) {
+            const data = localStorage.getItem(ls);
+            if (data) {
+                await idbSet(storeName, 'main', JSON.parse(data));
+            }
+        }
+        // 迁移配置
+        const configs = [STORAGE_OPERATOR, STORAGE_EXPORT_SEQ, STORAGE_DRAFT, STORAGE_COL_VIS];
+        for (const key of configs) {
+            const data = localStorage.getItem(key);
+            if (data) {
+                await idbSet(IDB_STORES.config, key, key===STORAGE_OPERATOR?data:(safeJson(data)??data));
+            }
+        }
+        console.log('数据已迁移到 IndexedDB');
+    } catch (e) {
+        console.warn('迁移到 IndexedDB 失败，继续使用 localStorage:', e);
+    }
+}
+
+/* ================================================================
+   数据校验
+   ================================================================ */
+const validators = {
+    id: (value) => {
+        if (!value) return '编号不能为空';
+        if (!parseNo(value)) return '编号格式不正确，例如 DN2026071501（旧 PA-0001 仍兼容）';
+        return null;
+    },
+    qty: (value) => {
+        if (!value) return null; // 数量可以为空
+        const num = parseInt(value, 10);
+        if (isNaN(num) || num < 1) return '数量必须为正整数';
+        if (String(num) !== String(value)) return '数量必须为整数';
+        return null;
+    },
+    date: (value) => {
+        if (!value) return null; // 日期可以为空
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return '日期格式不正确';
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return '日期无效';
+        return null;
+    },
+    status: (value) => {
+        if (!value) return '状态不能为空';
+        if (!STATUS_OPTIONS.includes(value)) return '状态值无效';
+        return null;
+    },
+    assetMainCode: (value) => {
+        if (!value) return '资产大类不能为空';
+        return null;
+    },
+    assetSubCode: (value) => {
+        if (!value) return '资产子类不能为空';
+        return null;
+    }
+};
+
+function validateField(field, value) {
+    const validator = validators[field];
+    if (validator) return validator(value);
+    return null;
+}
+
+function validateRow(row) {
+    const errors = {};
+    for (const [field, value] of Object.entries(row)) {
+        const error = validateField(field, value);
+        if (error) errors[field] = error;
+    }
+    return Object.keys(errors).length > 0 ? errors : null;
+}
+
 /* ── Toast ── */
 function toast(msg, type="info", action=null, actionLabel=""){
     const c=document.getElementById("toastContainer");if(!c)return;
     const el=document.createElement("div");el.className=`toast ${type}`;
-    el.innerHTML=msg+(action?` <button style="background:none;border:none;color:#fff;text-decoration:underline;cursor:pointer;font-weight:700;padding:0;font-size:13px;" onclick="const t=this.parentElement;t.classList.add('removing');setTimeout(()=>t.remove(),280);(${action})()">${actionLabel}</button>`:"");
+    // 使用textContent防止XSS注入
+    el.textContent=msg;
+    if(action){
+        const btn=document.createElement("button");
+        btn.style.cssText="background:none;border:none;color:#fff;text-decoration:underline;cursor:pointer;font-weight:700;padding:0;font-size:13px;margin-left:8px;";
+        btn.textContent=actionLabel;
+        btn.onclick=e=>{
+            e.stopPropagation();
+            el.classList.add("removing");
+            setTimeout(()=>el.remove(),280);
+            if(typeof action==="function")action();
+        };
+        el.appendChild(btn);
+    }
     el.onclick=e=>{if(e.target.tagName!=="BUTTON"){el.classList.add("removing");setTimeout(()=>el.remove(),280)}};
     c.appendChild(el);setTimeout(()=>{if(el.parentNode){el.classList.add("removing");setTimeout(()=>el.remove(),280)}},5000);
 }
@@ -846,7 +1331,7 @@ function trashRowWithUndo(uidValue){
     const row=rows[idx];_lastTrashed={row:clone(row),time:Date.now()};
     trash.unshift({...clone(row),deletedAt:new Date().toLocaleString()});rows.splice(idx,1);releaseNo(row.id);
     selectedSet.delete(uidValue);addLog("删除",row,"移入回收站");saveState();renderAll();
-    toast(`已移入回收站：${row.id}`,"info",`()=>{undoTrash()}`, "撤销");
+    toast(`已移入回收站：${row.id}`,"info",undoTrash, "撤销");
 }
 function undoTrash(){
     if(!_lastTrashed||Date.now()-_lastTrashed.time>30000){toast("无法撤销，已超时","warn");return}
@@ -963,7 +1448,7 @@ function migrateRow(r){
     return r;
 }
 function migrateAll(){rows=rows.map(migrateRow);trash=trash.map(migrateRow)}
-function ensureUniqueIds(){const seen=new Set();rows.forEach(r=>{if(!r.id||seen.has(r.id)||isDupId(r.id,r.uid)){const o=r.id;r.id=nextNo();addLog("编号修正",r,`自动修正：${o||"空"} → ${r.id}`)}seen.add(r.id)})}
+function ensureUniqueIds(){const seen=new Set();rows.forEach(r=>{if(!r.id||seen.has(r.id)||isDupId(r.id,r.uid)){const o=r.id;r.id=nextNo(r.assetMainCode,r.assetSubCode,r.date);addLog("编号修正",r,`自动修正：${o||"空"} → ${r.id}`)}seen.add(r.id)})}
 function isDupId(id,exUid=null){const t=(id||"").trim();if(!t)return false;return rows.some(r=>r.id===t&&r.uid!==exUid)}
 function getDupIds(){const m=new Map();rows.forEach(r=>{const id=(r.id||"").trim();if(id)m.set(id,(m.get(id)||0)+1)});return [...m.entries()].filter(([,c])=>c>1).map(([id])=>id)}
 function getDupSnCount(){const m=new Map();rows.forEach(r=>{const sn=(r.sn||"").trim();if(!sn||sn==="无")return;m.set(sn,(m.get(sn)||0)+1)});return [...m.values()].filter(n=>n>1).reduce((a,b)=>a+(b-1),0)}
@@ -971,15 +1456,19 @@ function getDupSnCount(){const m=new Map();rows.forEach(r=>{const sn=(r.sn||"").
 /* ================================================================
    LEDGER NO MANAGEMENT
    ================================================================ */
-function existingNos(){return rows.map(r=>parseNo(r.id)).filter(n=>Number.isFinite(n)&&n>0)}
-function nextNo(){const used=new Set([...existingNos(),...[...idReserveSet].map(x=>parseNo(x)).filter(n=>Number.isFinite(n)&&n>0)]);let n=1;while(used.has(n))n++;return fmtNo(n)}
-function reserveNo(){const n=nextNo();idReserveSet.add(n);return n}
+function nextNo(mainCode=defMainCode(),subCode=defSubCode(mainCode),dateValue=""){
+    const prefix=assetPrefix(mainCode,subCode),date=normalizeIdDate(dateValue),base=prefix+date;
+    const used=new Set([...rows.map(r=>r.id),...idReserveSet].map(x=>(x||"").toUpperCase()));
+    let seq=1,id="";do{id=base+String(seq++).padStart(2,"0")}while(used.has(id));
+    return id;
+}
+function reserveNo(mainCode=defMainCode(),subCode=defSubCode(mainCode),dateValue=""){const n=nextNo(mainCode,subCode,dateValue);idReserveSet.add(n);return n}
 function releaseNo(id){if(id)idReserveSet.delete(id)}
 
 /* ================================================================
    SORT
    ================================================================ */
-function sortComp(a,b){const na=parseNo(a.id),nb=parseNo(b.id);const aH=Number.isFinite(na),bH=Number.isFinite(nb);if(aH&&bH)return na-nb;if(aH)return-1;if(bH)return 1;return (a.id||"").localeCompare(b.id||"","zh-Hans-CN")}
+function sortComp(a,b){const pa=parseNo(a.id),pb=parseNo(b.id);if(pa&&pb)return pa.date.localeCompare(pb.date)||pa.prefix.localeCompare(pb.prefix)||pa.seq-pb.seq;return (a.id||"").localeCompare(b.id||"","zh-Hans-CN")}
 function sortRows(){rows.sort(sortComp)}
 function sorted(list){
     if(sortKey==="id"){const arr=list.slice().sort(sortComp);return sortAsc?arr:arr.reverse()}
@@ -998,28 +1487,104 @@ function toggleSort(colKey){
 }
 
 /* ================================================================
-   STORAGE
+   STORAGE (IndexedDB + localStorage fallback)
    ================================================================ */
-function loadState(){
+async function loadState(){
     try{
-        rows=normRows(safeJson(lsGet(STORAGE_KEY,"[]"))||[]);trash=normTrash(safeJson(lsGet(STORAGE_TRASH,"[]"))||[]);
-        logs=normLogs(safeJson(lsGet(STORAGE_LOGS,"[]"))||[]);snapshots=normSnaps(safeJson(lsGet(STORAGE_SNAPSHOTS,"[]"))||[]);
-        exportSeqMap=safeJson(lsGet(STORAGE_EXPORT_SEQ,"{}"))||{};
-        colVis=safeJson(lsGet(STORAGE_COL_VIS,"{}"))||{};
-        const op=lsGet(STORAGE_OPERATOR,"");if(op)document.getElementById("operatorInput").value=op;
+        // 尝试从 IndexedDB 加载
+        const [rowsData, trashData, logsData, snapsData, configData, borrowsData, repairsData, inventoryData, transfersData] = await Promise.all([
+            idbGet(IDB_STORES.rows, 'main'),
+            idbGet(IDB_STORES.trash, 'main'),
+            idbGet(IDB_STORES.logs, 'main'),
+            idbGet(IDB_STORES.snapshots, 'main'),
+            idbGet(IDB_STORES.config, 'all'),
+            idbGet(IDB_STORES.borrows, 'main'),
+            idbGet(IDB_STORES.repairs, 'main'),
+            idbGet(IDB_STORES.inventory, 'main'),
+            idbGet(IDB_STORES.transfers, 'main')
+        ]);
+
+        if (rowsData) {
+            rows = normRows(rowsData);
+            trash = normTrash(trashData || []);
+            logs = normLogs(logsData || []);
+            snapshots = normSnaps(snapsData || []);
+            borrowRecords = borrowsData || [];
+            repairRecords = repairsData || [];
+            inventoryRecords = inventoryData || [];
+            transferRecords = transfersData || [];
+        } else {
+            // IndexedDB 无数据，尝试 localStorage
+            rows = normRows(safeJson(lsGet(STORAGE_KEY,"[]"))||[]);
+            trash = normTrash(safeJson(lsGet(STORAGE_TRASH,"[]"))||[]);
+            logs = normLogs(safeJson(lsGet(STORAGE_LOGS,"[]"))||[]);
+            snapshots = normSnaps(safeJson(lsGet(STORAGE_SNAPSHOTS,"[]"))||[]);
+            borrowRecords = safeJson(lsGet(STORAGE_BORROWS,"[]"))||[];
+            repairRecords = safeJson(lsGet(STORAGE_REPAIRS,"[]"))||[];
+            inventoryRecords = safeJson(lsGet(STORAGE_INVENTORY,"[]"))||[];
+            transferRecords = safeJson(lsGet(STORAGE_TRANSFERS,"[]"))||[];
+            // 迁移到 IndexedDB
+            await migrateToIDB();
+        }
+
+        if (configData) {
+            exportSeqMap = configData.exportSeq || {};
+            colVis = configData.colVis || {};
+            if (configData.operator) document.getElementById("operatorInput").value = configData.operator;
+        } else {
+            exportSeqMap = safeJson(lsGet(STORAGE_EXPORT_SEQ,"{}"))||{};
+            colVis = safeJson(lsGet(STORAGE_COL_VIS,"{}"))||{};
+            const op = lsGet(STORAGE_OPERATOR,"");
+            if(op) document.getElementById("operatorInput").value = op;
+        }
+
         if(!rows.length){rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid())}
-    }catch(e){rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];exportSeqMap={}}
+    }catch(e){
+        console.error('加载数据失败:', e);
+        rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];exportSeqMap={};borrowRecords=[];repairRecords=[];inventoryRecords=[];transferRecords=[]
+    }
     migrateAll();ensureUniqueIds();sortRows();
 }
-function saveState(){
+
+async function saveState(){
     try{
-        const ok=lsSet(STORAGE_KEY,JSON.stringify(rows))&&lsSet(STORAGE_TRASH,JSON.stringify(trash))&&lsSet(STORAGE_LOGS,JSON.stringify(logs))&&lsSet(STORAGE_OPERATOR,getOp())&&lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap))&&lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));
-        lsSet(STORAGE_SNAPSHOTS,JSON.stringify(snapshots));
-        let draft={rows,trash,logs:logs.slice(0,50),snapshots:snapshots.slice(0,3),safeRemoteVersion,updatedAt:new Date().toISOString(),updatedBy:getOp()};
-        lsSet(STORAGE_DRAFT,JSON.stringify(draft));
-        return ok;
-    }catch(e){setSyncInfo("保存失败："+e.message);return false}
+        const config = {
+            operator: getOp(),
+            exportSeq: exportSeqMap,
+            colVis: colVis,
+            draft: {
+                rows, trash, logs: logs.slice(0,50),
+                snapshots: snapshots.slice(0,3),
+                safeRemoteVersion,
+                updatedAt: new Date().toISOString(),
+                updatedBy: getOp()
+            }
+        };
+
+        await Promise.all([
+            idbSet(IDB_STORES.rows, 'main', rows),
+            idbSet(IDB_STORES.trash, 'main', trash),
+            idbSet(IDB_STORES.logs, 'main', logs),
+            idbSet(IDB_STORES.snapshots, 'main', snapshots),
+            idbSet(IDB_STORES.config, 'all', config),
+            idbSet(IDB_STORES.borrows, 'main', borrowRecords),
+            idbSet(IDB_STORES.repairs, 'main', repairRecords),
+            idbSet(IDB_STORES.inventory, 'main', inventoryRecords),
+            idbSet(IDB_STORES.transfers, 'main', transferRecords)
+        ]);
+
+        return true;
+    }catch(e){
+        console.error('保存到 IndexedDB 失败，回退到 localStorage:', e);
+        // 回退到 localStorage
+        try{
+            const ok=lsSet(STORAGE_KEY,JSON.stringify(rows))&&lsSet(STORAGE_TRASH,JSON.stringify(trash))&&lsSet(STORAGE_LOGS,JSON.stringify(logs))&&lsSet(STORAGE_OPERATOR,getOp())&&lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap))&&lsSet(STORAGE_COL_VIS,JSON.stringify(colVis))&&lsSet(STORAGE_BORROWS,JSON.stringify(borrowRecords))&&lsSet(STORAGE_REPAIRS,JSON.stringify(repairRecords))&&lsSet(STORAGE_INVENTORY,JSON.stringify(inventoryRecords))&&lsSet(STORAGE_TRANSFERS,JSON.stringify(transferRecords));
+            lsSet(STORAGE_SNAPSHOTS,JSON.stringify(snapshots));
+            return ok;
+        }catch(e2){setSyncInfo("保存失败："+e2.message);return false}
+    }
 }
+
 function setSyncInfo(t){const el=document.getElementById("syncInfo");if(el)el.textContent=t||"";clearTimeout(saveStateTimer);saveStateTimer=setTimeout(()=>refreshFolderStates(),2500)}
 
 /* ================================================================
@@ -1045,7 +1610,7 @@ function pushSnapshot(src="自动保存",nt="自动保存"){
 }
 
 /* ================================================================
-   FILTERING
+   FILTERING & PAGINATION
    ================================================================ */
 function getFiltered(){
     const kw=document.getElementById("searchInput").value.trim().toLowerCase();
@@ -1069,31 +1634,618 @@ function getFiltered(){
     else if(quickFilter==="dup_sn"){const m=new Map();rows.forEach(r=>{const sn=(r.sn||"").trim();if(!sn||sn==="无")return;m.set(sn,(m.get(sn)||0)+1)});const dupSns=new Set([...m.entries()].filter(([,c])=>c>1).map(([sn])=>sn));result=result.filter(r=>dupSns.has((r.sn||"").trim()))}
     return result;
 }
+
+// 获取当前页的数据
+function getPagedData(filtered) {
+    const totalPages = Math.ceil(filtered.length / pageSize);
+    if (currentPage > totalPages) currentPage = Math.max(1, totalPages);
+    const start = (currentPage - 1) * pageSize;
+    const end = start + pageSize;
+    return {
+        data: filtered.slice(start, end),
+        total: filtered.length,
+        totalPages,
+        currentPage,
+        pageSize
+    };
+}
+
+// 渲染分页控件
+function renderPagination(total, totalPages) {
+    const container = document.getElementById('paginationContainer');
+    if (!container) return;
+    if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+    let html = '<div class="pagination">';
+    html += `<span class="page-info">共 ${total} 条，第 ${currentPage}/${totalPages} 页</span>`;
+    html += '<div class="page-size-select">每页 <select onchange="changePageSize(this.value)">';
+    PAGE_SIZE_OPTIONS.forEach(s => {
+        html += `<option value="${s}" ${s === pageSize ? 'selected' : ''}>${s} 条</option>`;
+    });
+    html += '</select></div>';
+    html += '<div class="page-btns">';
+    html += `<button class="page-btn" onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>首页</button>`;
+    html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+
+    // 显示页码按钮
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+
+    if (startPage > 1) html += '<span class="page-ellipsis">...</span>';
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    }
+    if (endPage < totalPages) html += '<span class="page-ellipsis">...</span>';
+
+    html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+    html += `<button class="page-btn" onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末页</button>`;
+    html += '</div></div>';
+    container.innerHTML = html;
+}
+
+function goToPage(page) {
+    currentPage = page;
+    renderTable();
+    // 滚动到表格顶部
+    document.querySelector('.table-wrap')?.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function changePageSize(size) {
+    pageSize = parseInt(size, 10);
+    currentPage = 1;
+    renderTable();
+}
+
 function applyQuickFilter(filter){
     quickFilter=filter;
+    currentPage = 1; // 重置到第一页
     document.querySelectorAll(".pill-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter===filter));
     if(filter==="all"){document.getElementById("statusFilter").value="";document.getElementById("searchInput").value=""}
     else if(filter==="in_stock")document.getElementById("statusFilter").value="在库";
     else if(filter==="pending")document.getElementById("statusFilter").value="待检测";
     else if(filter==="in_use")document.getElementById("statusFilter").value="已领用";
+    else if(filter==="borrowed")document.getElementById("statusFilter").value="已借出";
+    else if(filter==="repairing")document.getElementById("statusFilter").value="维修中";
     else{document.getElementById("statusFilter").value=""}
     renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts();
 }
-function onFilterChange(){quickFilter="all";document.querySelectorAll(".pill-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter==="all"));renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts()}
+function onFilterChange(){quickFilter="all";currentPage=1;document.querySelectorAll(".pill-btn").forEach(b=>b.classList.toggle("active",b.dataset.filter==="all"));renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts()}
 function updatePillCounts(){
     const counts={
         in_stock:rows.filter(r=>r.status==="在库").length,
         pending:rows.filter(r=>r.status==="待检测").length,
         in_use:rows.filter(r=>r.status==="已领用").length,
+        borrowed:rows.filter(r=>r.status==="已借出").length,
+        repairing:rows.filter(r=>r.status==="维修中").length,
         my:rows.filter(r=>r.owner===getOp()).length,
         dup_id:getDupIds().length,
         dup_sn:getDupSnCount()
     };
-    const labels={all:"全部",in_stock:"在库",pending:"待检测",in_use:"已领用",my:"👤 我的",month:"📅 本月入库",dup_id:"⚠ 重复编号",dup_sn:"⚠ 重复序列号"};
+    const labels={all:"全部",in_stock:"在库",pending:"待检测",in_use:"已领用",borrowed:"已借出",repairing:"维修中",my:"👤 我的",month:"📅 本月入库",dup_id:"⚠ 重复编号",dup_sn:"⚠ 重复序列号"};
     document.querySelectorAll(".pill-btn").forEach(b=>{
         const f=b.dataset.filter;
         const cnt=counts[f];
         b.textContent=cnt!==undefined?`${labels[f]||f} (${cnt})`:labels[f]||f;
+    });
+}
+
+/* ================================================================
+   ADVANCED SEARCH
+   ================================================================ */
+let advancedSearchActive = false;
+
+function toggleAdvancedSearch() {
+    const panel = document.getElementById('advancedSearchPanel');
+    advancedSearchActive = !advancedSearchActive;
+    panel.style.display = advancedSearchActive ? 'block' : 'none';
+}
+
+function resetAdvancedSearch() {
+    document.getElementById('advBrand').value = '';
+    document.getElementById('advModel').value = '';
+    document.getElementById('advSpec').value = '';
+    document.getElementById('advSn').value = '';
+    document.getElementById('advLocation').value = '';
+    document.getElementById('advOwner').value = '';
+    document.getElementById('advDateFrom').value = '';
+    document.getElementById('advDateTo').value = '';
+    document.getElementById('advCheck').value = '';
+    document.getElementById('advQtyFrom').value = '';
+    document.getElementById('advQtyTo').value = '';
+    document.getElementById('advNote').value = '';
+    currentPage = 1;
+    renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts();
+}
+
+function applyAdvancedSearch() {
+    currentPage = 1;
+    renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();updatePillCounts();
+    toast('高级搜索已应用', 'success');
+}
+
+// 扩展 getFiltered 函数以支持高级搜索
+const _originalGetFiltered = getFiltered;
+getFiltered = function() {
+    let result = _originalGetFiltered.call(this);
+
+    if (!advancedSearchActive) return result;
+
+    const brand = document.getElementById('advBrand').value.trim().toLowerCase();
+    const model = document.getElementById('advModel').value.trim().toLowerCase();
+    const spec = document.getElementById('advSpec').value.trim().toLowerCase();
+    const sn = document.getElementById('advSn').value.trim();
+    const location = document.getElementById('advLocation').value.trim().toLowerCase();
+    const owner = document.getElementById('advOwner').value.trim().toLowerCase();
+    const dateFrom = document.getElementById('advDateFrom').value;
+    const dateTo = document.getElementById('advDateTo').value;
+    const check = document.getElementById('advCheck').value;
+    const qtyFrom = parseInt(document.getElementById('advQtyFrom').value, 10);
+    const qtyTo = parseInt(document.getElementById('advQtyTo').value, 10);
+    const note = document.getElementById('advNote').value.trim().toLowerCase();
+
+    return result.filter(r => {
+        if (brand && !(r.brand || '').toLowerCase().includes(brand)) return false;
+        if (model && !(r.model || '').toLowerCase().includes(model)) return false;
+        if (spec && !(r.spec || '').toLowerCase().includes(spec)) return false;
+        if (sn && (r.sn || '').trim() !== sn) return false;
+        if (location && !(r.location || '').toLowerCase().includes(location)) return false;
+        if (owner && !(r.owner || '').toLowerCase().includes(owner)) return false;
+        if (dateFrom && r.date && r.date < dateFrom) return false;
+        if (dateTo && r.date && r.date > dateTo) return false;
+        if (check && r.check !== check) return false;
+        if (!isNaN(qtyFrom) && qtyFrom > 0 && (parseInt(r.qty, 10) || 0) < qtyFrom) return false;
+        if (!isNaN(qtyTo) && qtyTo > 0 && (parseInt(r.qty, 10) || 0) > qtyTo) return false;
+        if (note && !(r.note || '').toLowerCase().includes(note)) return false;
+        return true;
+    });
+};
+
+/* ================================================================
+   BORROW MANAGEMENT
+   ================================================================ */
+function generateBorrowId() {
+    const date = todayYmd();
+    const count = borrowRecords.filter(r => r.id.startsWith(`BR-${date}`)).length + 1;
+    return `BR-${date}-${String(count).padStart(3, '0')}`;
+}
+
+function openBorrowModal(assetId = '') {
+    const modal = document.getElementById('borrowMask');
+    const form = document.getElementById('borrowFormGrid');
+
+    const assetOptions = rows.filter(r => r.status === '在库').map(r =>
+        `<option value="${r.id}" ${r.id === assetId ? 'selected' : ''}>${r.id} - ${r.brand} ${r.model}</option>`
+    ).join('');
+
+    form.innerHTML = `
+        <label>借用编号 <input id="borrowId" type="text" value="${generateBorrowId()}" readonly style="background:#f5f5f5;" /></label>
+        <label>资产 <select id="borrowAssetId">${assetOptions}</select></label>
+        <label>借用人 <input id="borrower" type="text" value="${getOp()}" /></label>
+        <label>借用日期 <input id="borrowDate" type="date" value="${new Date().toISOString().split('T')[0]}" /></label>
+        <label>预计归还 <input id="expectedReturnDate" type="date" /></label>
+        <label>用途 <input id="borrowPurpose" type="text" placeholder="借用用途" /></label>
+        <label style="grid-column:1 / -1;">备注 <textarea id="borrowNote" rows="2" placeholder="备注信息"></textarea></label>
+    `;
+    modal.style.display = 'flex';
+}
+
+function closeBorrowModal() {
+    document.getElementById('borrowMask').style.display = 'none';
+}
+
+function saveBorrow() {
+    const data = {
+        id: document.getElementById('borrowId').value,
+        assetId: document.getElementById('borrowAssetId').value,
+        borrower: document.getElementById('borrower').value.trim(),
+        borrowDate: document.getElementById('borrowDate').value,
+        expectedReturnDate: document.getElementById('expectedReturnDate').value,
+        purpose: document.getElementById('borrowPurpose').value.trim(),
+        note: document.getElementById('borrowNote').value.trim(),
+        actualReturnDate: '',
+        status: '借用中'
+    };
+
+    if (!data.assetId || !data.borrower || !data.borrowDate) {
+        toast('请填写必填字段', 'warn');
+        return;
+    }
+
+    // 更新资产状态
+    const asset = rows.find(r => r.id === data.assetId);
+    if (asset) {
+        const oldStatus = asset.status;
+        asset.status = '已借出';
+        addLog('借用', asset, `${data.borrower} 借用`, { status: { old: oldStatus, new: '已借出' } });
+    }
+
+    borrowRecords.unshift(data);
+    addLog('借用登记', { id: data.id }, `${data.borrower} 借用 ${data.assetId}`);
+    saveState();
+    closeBorrowModal();
+    renderBorrowRecords();
+    renderTable();
+    renderStats();
+    toast(`借用成功：${data.assetId}`, 'success');
+}
+
+function returnBorrow(borrowId) {
+    const record = borrowRecords.find(r => r.id === borrowId);
+    if (!record) return;
+
+    if (!confirm(`确认归还 ${record.assetId}？`)) return;
+
+    record.actualReturnDate = new Date().toISOString().split('T')[0];
+    record.status = '已归还';
+
+    // 更新资产状态
+    const asset = rows.find(r => r.id === record.assetId);
+    if (asset) {
+        const oldStatus = asset.status;
+        asset.status = '在库';
+        addLog('归还', asset, `${record.borrower} 归还`, { status: { old: oldStatus, new: '在库' } });
+    }
+
+    addLog('归还登记', { id: record.id }, `${record.borrower} 归还 ${record.assetId}`);
+    saveState();
+    renderBorrowRecords();
+    renderTable();
+    renderStats();
+    toast(`归还成功：${record.assetId}`, 'success');
+}
+
+function renderBorrowRecords() {
+    const body = document.getElementById('borrowBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!borrowRecords.length) {
+        body.innerHTML = '<tr><td colspan="9" style="padding:16px;text-align:center;color:#6b7280;">暂无借用记录</td></tr>';
+        return;
+    }
+
+    borrowRecords.forEach(r => {
+        const statusCls = r.status === '借用中' ? 's-borrow' : 's-in';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.id)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.assetId)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.borrower)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.borrowDate)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.expectedReturnDate || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.actualReturnDate || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;"><span class="status-tag ${statusCls}">${esc(r.status)}</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.purpose || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">
+                ${r.status === '借用中' ? `<button class="mini-btn btn-green" onclick="returnBorrow('${r.id}')">归还</button>` : ''}
+            </td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+/* ================================================================
+   REPAIR RECORDS
+   ================================================================ */
+function generateRepairId() {
+    const date = todayYmd();
+    const count = repairRecords.filter(r => r.id.startsWith(`RP-${date}`)).length + 1;
+    return `RP-${date}-${String(count).padStart(3, '0')}`;
+}
+
+function openRepairModal(assetId = '') {
+    const modal = document.getElementById('repairMask');
+    const form = document.getElementById('repairFormGrid');
+
+    const assetOptions = rows.map(r =>
+        `<option value="${r.id}" ${r.id === assetId ? 'selected' : ''}>${r.id} - ${r.brand} ${r.model}</option>`
+    ).join('');
+
+    form.innerHTML = `
+        <label>维修编号 <input id="repairId" type="text" value="${generateRepairId()}" readonly style="background:#f5f5f5;" /></label>
+        <label>资产 <select id="repairAssetId">${assetOptions}</select></label>
+        <label>维修类型 <select id="repairType"><option value="故障维修">故障维修</option><option value="定期保养">定期保养</option><option value="升级改造">升级改造</option></select></label>
+        <label>送修日期 <input id="repairDate" type="date" value="${new Date().toISOString().split('T')[0]}" /></label>
+        <label>维修人 <input id="repairer" type="text" value="${getOp()}" /></label>
+        <label>预计费用 <input id="repairCost" type="number" min="0" step="0.01" placeholder="元" /></label>
+        <label style="grid-column:1 / -1;">故障描述 <textarea id="repairDesc" rows="2" placeholder="故障现象描述"></textarea></label>
+        <label style="grid-column:1 / -1;">备注 <textarea id="repairNote" rows="2" placeholder="备注信息"></textarea></label>
+    `;
+    modal.style.display = 'flex';
+}
+
+function closeRepairModal() {
+    document.getElementById('repairMask').style.display = 'none';
+}
+
+function saveRepair() {
+    const data = {
+        id: document.getElementById('repairId').value,
+        assetId: document.getElementById('repairAssetId').value,
+        repairType: document.getElementById('repairType').value,
+        repairDate: document.getElementById('repairDate').value,
+        repairer: document.getElementById('repairer').value.trim(),
+        cost: parseFloat(document.getElementById('repairCost').value) || 0,
+        description: document.getElementById('repairDesc').value.trim(),
+        note: document.getElementById('repairNote').value.trim(),
+        completionDate: '',
+        status: '维修中'
+    };
+
+    if (!data.assetId || !data.repairDate || !data.repairer) {
+        toast('请填写必填字段', 'warn');
+        return;
+    }
+
+    // 更新资产状态
+    const asset = rows.find(r => r.id === data.assetId);
+    if (asset) {
+        const oldStatus = asset.status;
+        asset.status = '维修中';
+        addLog('送修', asset, `${data.repairType}`, { status: { old: oldStatus, new: '维修中' } });
+    }
+
+    repairRecords.unshift(data);
+    addLog('维修登记', { id: data.id }, `${data.assetId} ${data.repairType}`);
+    saveState();
+    closeRepairModal();
+    renderRepairRecords();
+    renderTable();
+    renderStats();
+    toast(`维修登记成功：${data.assetId}`, 'success');
+}
+
+function completeRepair(repairId) {
+    const record = repairRecords.find(r => r.id === repairId);
+    if (!record) return;
+
+    if (!confirm(`确认 ${record.assetId} 维修完成？`)) return;
+
+    record.completionDate = new Date().toISOString().split('T')[0];
+    record.status = '已完成';
+
+    // 更新资产状态
+    const asset = rows.find(r => r.id === record.assetId);
+    if (asset) {
+        const oldStatus = asset.status;
+        asset.status = '在库';
+        asset.check = '正常';
+        addLog('维修完成', asset, `${record.repairType}`, { status: { old: oldStatus, new: '在库' } });
+    }
+
+    addLog('维修完成', { id: record.id }, `${record.assetId} 维修完成`);
+    saveState();
+    renderRepairRecords();
+    renderTable();
+    renderStats();
+    toast(`维修完成：${record.assetId}`, 'success');
+}
+
+function renderRepairRecords() {
+    const body = document.getElementById('repairBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!repairRecords.length) {
+        body.innerHTML = '<tr><td colspan="10" style="padding:16px;text-align:center;color:#6b7280;">暂无维修记录</td></tr>';
+        return;
+    }
+
+    repairRecords.forEach(r => {
+        const statusCls = r.status === '维修中' ? 's-repair' : 's-in';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.id)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.assetId)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.repairType)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.repairDate)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.completionDate || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;"><span class="status-tag ${statusCls}">${esc(r.status)}</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${r.cost ? `¥${r.cost.toFixed(2)}` : '-'}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.repairer)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.description || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">
+                ${r.status === '维修中' ? `<button class="mini-btn btn-green" onclick="completeRepair('${r.id}')">完成</button>` : ''}
+            </td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+/* ================================================================
+   INVENTORY MANAGEMENT
+   ================================================================ */
+function generateInventoryId() {
+    const date = todayYmd();
+    const count = inventoryRecords.filter(r => r.id.startsWith(`INV-${date}`)).length + 1;
+    return `INV-${date}-${String(count).padStart(3, '0')}`;
+}
+
+function startNewInventory() {
+    if (!confirm('开始新的资产盘点？将记录当前所有资产状态。')) return;
+
+    const inventory = {
+        id: generateInventoryId(),
+        planDate: new Date().toISOString().split('T')[0],
+        actualDate: new Date().toISOString().split('T')[0],
+        operator: getOp(),
+        status: '进行中',
+        totalAssets: rows.length,
+        differenceCount: 0,
+        items: rows.map(r => ({
+            assetId: r.id,
+            expected: r.status,
+            actual: '',
+            difference: '',
+            note: ''
+        }))
+    };
+
+    inventoryRecords.unshift(inventory);
+    addLog('资产盘点', { id: inventory.id }, `开始盘点，共 ${rows.length} 项资产`);
+    saveState();
+    renderInventoryRecords();
+    toast(`盘点已开始：${inventory.id}`, 'success');
+}
+
+function completeInventory(inventoryId) {
+    const inventory = inventoryRecords.find(r => r.id === inventoryId);
+    if (!inventory) return;
+
+    // 统计差异
+    const differences = inventory.items.filter(item => item.actual && item.actual !== item.expected);
+    inventory.differenceCount = differences.length;
+    inventory.status = '已完成';
+
+    addLog('盘点完成', { id: inventory.id }, `完成盘点，差异项：${differences.length}`);
+    saveState();
+    renderInventoryRecords();
+    toast(`盘点完成：${inventory.id}，差异项：${differences.length}`, 'success');
+}
+
+function renderInventoryRecords() {
+    const body = document.getElementById('inventoryBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!inventoryRecords.length) {
+        body.innerHTML = '<tr><td colspan="8" style="padding:16px;text-align:center;color:#6b7280;">暂无盘点记录</td></tr>';
+        return;
+    }
+
+    inventoryRecords.forEach(r => {
+        const statusCls = r.status === '进行中' ? 's-wait' : 's-in';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.id)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.planDate)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.actualDate || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.operator)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;"><span class="status-tag ${statusCls}">${esc(r.status)}</span></td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${r.totalAssets}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${r.differenceCount || 0}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">
+                ${r.status === '进行中' ? `<button class="mini-btn btn-green" onclick="completeInventory('${r.id}')">完成</button>` : ''}
+            </td>
+        `;
+        body.appendChild(tr);
+    });
+}
+
+/* ================================================================
+   ASSET TRANSFER
+   ================================================================ */
+let transferRecords = [];  // {id, assetId, transferDate, fromLocation, toLocation, fromOwner, toOwner, reason, operator}
+
+function generateTransferId() {
+    const date = todayYmd();
+    const count = transferRecords.filter(r => r.id.startsWith(`TR-${date}`)).length + 1;
+    return `TR-${date}-${String(count).padStart(3, '0')}`;
+}
+
+function openTransferModal(assetId = '') {
+    const modal = document.getElementById('transferMask');
+    const form = document.getElementById('transferFormGrid');
+
+    const asset = assetId ? rows.find(r => r.id === assetId) : null;
+
+    form.innerHTML = `
+        <label>转移编号 <input id="transferId" type="text" value="${generateTransferId()}" readonly style="background:#f5f5f5;" /></label>
+        <label>资产编号 <input id="transferAssetId" type="text" value="${assetId}" ${assetId ? 'readonly' : ''} oninput="onTransferAssetChange(this.value)" /></label>
+        <label>转移日期 <input id="transferDate" type="date" value="${new Date().toISOString().split('T')[0]}" /></label>
+        <label>原位置 <input id="transferFromLocation" type="text" value="${asset?.location || ''}" readonly style="background:#f5f5f5;" /></label>
+        <label>新位置 <input id="transferToLocation" type="text" placeholder="输入新位置" /></label>
+        <label>原责任人 <input id="transferFromOwner" type="text" value="${asset?.owner || ''}" readonly style="background:#f5f5f5;" /></label>
+        <label>新责任人 <input id="transferToOwner" type="text" placeholder="输入新责任人" /></label>
+        <label style="grid-column:1 / -1;">转移原因 <textarea id="transferReason" rows="2" placeholder="转移原因"></textarea></label>
+    `;
+    modal.style.display = 'flex';
+}
+
+function onTransferAssetChange(assetId) {
+    const asset = rows.find(r => r.id === assetId);
+    if (asset) {
+        document.getElementById('transferFromLocation').value = asset.location || '';
+        document.getElementById('transferFromOwner').value = asset.owner || '';
+    }
+}
+
+function closeTransferModal() {
+    document.getElementById('transferMask').style.display = 'none';
+}
+
+function saveTransfer() {
+    const data = {
+        id: document.getElementById('transferId').value,
+        assetId: document.getElementById('transferAssetId').value.trim(),
+        transferDate: document.getElementById('transferDate').value,
+        fromLocation: document.getElementById('transferFromLocation').value,
+        toLocation: document.getElementById('transferToLocation').value.trim(),
+        fromOwner: document.getElementById('transferFromOwner').value,
+        toOwner: document.getElementById('transferToOwner').value.trim(),
+        reason: document.getElementById('transferReason').value.trim(),
+        operator: getOp()
+    };
+
+    if (!data.assetId || !data.toLocation) {
+        toast('请填写资产编号和新位置', 'warn');
+        return;
+    }
+
+    // 更新资产信息
+    const asset = rows.find(r => r.id === data.assetId);
+    if (!asset) {
+        toast('资产编号不存在', 'warn');
+        return;
+    }
+
+    const changes = {};
+    if (data.toLocation && data.toLocation !== asset.location) {
+        changes.location = { old: asset.location, new: data.toLocation };
+        asset.location = data.toLocation;
+    }
+    if (data.toOwner && data.toOwner !== asset.owner) {
+        changes.owner = { old: asset.owner, new: data.toOwner };
+        asset.owner = data.toOwner;
+    }
+
+    transferRecords.unshift(data);
+    addLog('资产转移', asset, `${data.fromLocation} → ${data.toLocation}`, changes);
+    saveState();
+    closeTransferModal();
+    renderTransferRecords();
+    renderTable();
+    toast(`转移成功：${data.assetId}`, 'success');
+}
+
+function renderTransferRecords() {
+    const body = document.getElementById('transferBody');
+    if (!body) return;
+    body.innerHTML = '';
+
+    if (!transferRecords.length) {
+        body.innerHTML = '<tr><td colspan="9" style="padding:16px;text-align:center;color:#6b7280;">暂无转移记录</td></tr>';
+        return;
+    }
+
+    transferRecords.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.id)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.assetId)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.transferDate)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.fromLocation)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.toLocation)}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.fromOwner || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.toOwner || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.reason || '-')}</td>
+            <td style="padding:10px 8px;border-bottom:1px solid #e6eaf2;">${esc(r.operator)}</td>
+        `;
+        body.appendChild(tr);
     });
 }
 
@@ -1132,21 +2284,24 @@ function renderTable(){
     renderTableHead();
     const body=document.getElementById("tableBody");body.innerHTML="";
     const filtered=sorted(getFiltered());
+    const { data: pageData, total, totalPages } = getPagedData(filtered);
     const visCols=COLUMNS.filter(c=>isColVis(c.key));
-    document.getElementById("countInfo").textContent=`当前显示 ${filtered.length} 条 / 共 ${rows.length} 条`;
-    const selAll=document.getElementById("selectAllBox");if(selAll)selAll.checked=filtered.length>0&&filtered.every(r=>selectedSet.has(r.uid));
+
+    document.getElementById("countInfo").textContent=`当前显示 ${pageData.length} 条 / 共 ${filtered.length} 条 (共 ${rows.length} 条)`;
+    const selAll=document.getElementById("selectAllBox");if(selAll)selAll.checked=pageData.length>0&&pageData.every(r=>selectedSet.has(r.uid));
     selectionBar();
 
-    filtered.forEach(r=>{
+    pageData.forEach(r=>{
         const tr=document.createElement("tr");tr.dataset.uid=r.uid;if(selectedSet.has(r.uid))tr.classList.add("selected");
         tr.innerHTML=`<td style="text-align:center;width:52px;"><input type="checkbox" ${selectedSet.has(r.uid)?"checked":""} onchange="toggleRowSel('${r.uid}',this.checked)" /></td>`+
             visCols.map(c=>renderCell(r,c)).join("");
         tr.addEventListener("contextmenu",e=>showCtxMenu(e,r.uid));
         body.appendChild(tr);
     });
-    if(!filtered.length)body.innerHTML=`<tr><td colspan="${visCols.length+1}" style="padding:16px;text-align:center;color:#64748b;">没有匹配的记录</td></tr>`;
+    if(!pageData.length)body.innerHTML=`<tr><td colspan="${visCols.length+1}" style="padding:16px;text-align:center;color:#64748b;">没有匹配的记录</td></tr>`;
     const dupIds=getDupIds();if(dupIds.length)setSyncInfo(`⚠ 重复编号：${dupIds.join(", ")}`);
     updatePillCounts();
+    renderPagination(total, totalPages);
     setTimeout(()=>makeCustomSelects(document.getElementById("tableBody")),10);
 }
 function renderCell(r,col){
@@ -1240,10 +2395,19 @@ function updateField(uidValue,field,value){
     const row=rows.find(r=>r.uid===uidValue);if(!row)return;
     const oldVal=row[field];const newVal=(value??"").toString().trim();
     if(oldVal===newVal)return;
+
+    // 数据校验
+    const error = validateField(field, newVal);
+    if (error) {
+        flashCell(uidValue,field);
+        toast(error,"warn");
+        setCellInvalid(uidValue,field,true);
+        return;
+    }
+    setCellInvalid(uidValue,field,false);
+
     if(field==="id"){
-        if(!/^PA-\d+$/.test(newVal)){flashCell(uidValue,field);toast("编号格式不正确，须为 PA-0001","warn");setCellInvalid(uidValue,field,true);renderTable();return}
         if(isDupId(newVal,uidValue)){flashCell(uidValue,field);toast(`编号 ${newVal} 已存在，请换一个编号`,"warn");setCellInvalid(uidValue,field,true);renderTable();return}
-        setCellInvalid(uidValue,field,false);
         row[field]=newVal;releaseNo(oldVal);
         addLog("编号修改",row,"",{id:{old:oldVal,new:newVal}});
         sortRows();saveState();renderTable();renderStats();renderCharts();updateCountInfo();return;
@@ -1309,7 +2473,7 @@ function clearSel(){selectedSet.clear();renderTable();renderStats();selectionBar
 
 function dupRow(uidValue){
     const row=rows.find(r=>r.uid===uidValue);if(!row)return;
-    const nr=clone(row);nr.uid=uid();nr.id=reserveNo();rows.push(nr);
+    const nr=clone(row);nr.uid=uid();nr.id=reserveNo(nr.assetMainCode,nr.assetSubCode,nr.date);rows.push(nr);
     sortRows();addLog("复制",nr,`由 ${row.id} 复制`);selectedSet.clear();selectedSet.add(nr.uid);
     saveState();renderTable();renderStats();renderCharts();selectionBar();updateCountInfo();
 }
@@ -1325,13 +2489,13 @@ function moveSelToTrash(){
    ================================================================ */
 function buildRowFormGrid(){
     return ROW_FORM_FIELDS.map(([elId,key,label,type,opts])=>{
-        if(type==="mainCat") return `<label>${label} <select id="${elId}" onchange="syncRowSubOpts();markDirty()"></select></label>`;
-        if(type==="subCat") return `<label>${label} <select id="${elId}" onchange="markDirty()"></select></label>`;
+        if(type==="mainCat") return `<label>${label} <select id="${elId}" onchange="syncRowSubOpts();updateSuggestedAssetId();markDirty()"></select></label>`;
+        if(type==="subCat") return `<label>${label} <select id="${elId}" onchange="updateSuggestedAssetId();markDirty()"></select></label>`;
         if(type==="select") return `<label>${label} <select id="${elId}" onchange="markDirty()">${selOpts(opts,opts[0])}</select></label>`;
         if(type==="textarea") return `<label style="grid-column:1 / -1;">${label} <textarea id="${elId}" rows="3" oninput="markDirty()"></textarea></label>`;
         if(type==="number") return `<label>${label} <input id="${elId}" type="number" min="1" value="1" oninput="markDirty()" /></label>`;
-        if(type==="date") return `<label>${label} <input id="${elId}" type="date" oninput="markDirty()" /></label>`;
-        const extra=key==="id"?' oninput="checkDupIdLive(this);markDirty()"':' oninput="markDirty()"';
+        if(type==="date") return `<label>${label} <input id="${elId}" type="date" oninput="updateSuggestedAssetId();markDirty()" /></label>`;
+        const extra=key==="id"?' oninput="lastSuggestedId=\'\';checkDupIdLive(this);markDirty()"':' oninput="markDirty()"';
         return `<label>${label} <input id="${elId}" type="text"${extra} /></label>`;
     }).join("");
 }
@@ -1346,6 +2510,16 @@ function syncSubSelect(mainId, subId, keepVal=true){
     refreshSelect(el);
 }
 function syncRowSubOpts(){syncSubSelect("rowMainCategory","rowSubCategory")}
+function updateSuggestedAssetId(){
+    if(modalMode!=="add")return;
+    const idEl=document.getElementById("rowId");if(!idEl)return;
+    if(lastSuggestedId&&idEl.value!==lastSuggestedId)return;
+    releaseNo(lastSuggestedId);
+    const mc=document.getElementById("rowMainCategory")?.value||defMainCode();
+    const sc=document.getElementById("rowSubCategory")?.value||defSubCode(mc);
+    lastSuggestedId=reserveNo(mc,sc,document.getElementById("rowDate")?.value||"");
+    idEl.value=lastSuggestedId;
+}
 function openRowModal(mode="add",uidValue=null){
     modalMode=mode;editingUid=uidValue;formDirty=false;
     document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
@@ -1358,13 +2532,15 @@ function openRowModal(mode="add",uidValue=null){
         if(type==="mainCat"){el.innerHTML=renderMainOpts(row?.assetMainCode||defMainCode());syncRowSubOpts()}
         else if(type==="subCat"){el.innerHTML=renderSubOpts(row?.assetMainCode||defMainCode(),row?.assetSubCode||defSubCode(row?.assetMainCode||defMainCode()))}
         else if(type==="select"){el.value=row?row[key]||"":""}
-        else{el.value=mode==="add"&&key==="id"?reserveNo():(row?.[key]??(key==="qty"?"1":""))}
+        else{el.value=row?.[key]??(key==="qty"?"1":(mode==="add"&&key==="date"?new Date().toISOString().slice(0,10):""))}
     });
+    lastSuggestedId="";if(mode==="add")updateSuggestedAssetId();
 }
 /* ── Unified modal close ── */
+function openReleaseNotes(){document.getElementById("releaseNotesMask").style.display="flex"}
 function closeModal(id){
     document.getElementById(id).style.display="none";
-    if(id==="rowMask"){if(modalMode==="add")releaseNo(document.getElementById("rowId")?.value);formDirty=false;editingUid=null}
+    if(id==="rowMask"){if(modalMode==="add")releaseNo(document.getElementById("rowId")?.value);lastSuggestedId="";formDirty=false;editingUid=null}
     if(id==="batchMask")formDirty=false;
     if(id==="importPreviewMask")pendingImport=null;
 }
@@ -1372,9 +2548,17 @@ function saveRowModal(){
     let committed=false;
     try{
         const data={};ROW_FORM_FIELDS.forEach(([elId,key])=>{const el=document.getElementById(elId);data[key]=el?el.value.trim():""});
-        if(!/^PA-\d+$/.test(data.id)){alert("编号格式不正确，须为 PA-0001");return}
+
+        // 数据校验
+        const errors = validateRow(data);
+        if (errors) {
+            const firstError = Object.values(errors)[0];
+            toast(firstError, "warn");
+            return;
+        }
+
         if(modalMode==="add"){
-            if(isDupId(data.id)){data.id=nextNo();document.getElementById("rowId").value=data.id}
+            if(isDupId(data.id)){data.id=nextNo(data.assetMainCode,data.assetSubCode,data.date);document.getElementById("rowId").value=data.id}
             const main=getCat(data.assetMainCode||defMainCode()),sub=getSub(main.code,data.assetSubCode||defSubCode(main.code));
             const row={uid:uid(),...data,assetMainName:main.name,assetSubName:sub.name,source:"",type:"",machineClass:""};
             rows.push(row);sortRows();addLog("新增",row);selectedSet.clear();selectedSet.add(row.uid);committed=true;
@@ -1407,7 +2591,7 @@ function openBatchModal(){
         <label>当前状态 <select id="batchStatus" onchange="markDirty()">${selOpts(STATUS_OPTIONS,"在库")}</select></label>
         <label>存放位置 <input id="batchLocation" type="text" oninput="markDirty()" /></label>
         <label>责任人 <input id="batchOwner" type="text" oninput="markDirty()" /></label>
-        <label></label>
+        <label>入库日期 <input id="batchDate" type="date" value="${new Date().toISOString().slice(0,10)}" oninput="markDirty()" /></label>
         <label style="grid-column:1 / -1;">备注 <textarea id="batchNote" rows="3" oninput="markDirty()"></textarea></label>`;
     syncBatchSub();
     document.getElementById("batchMask").style.display="flex";
@@ -1421,9 +2605,9 @@ function confirmBatchAdd(){
     const brand=document.getElementById("batchBrand").value.trim(),model=document.getElementById("batchModel").value.trim();
     const spec=document.getElementById("batchSpec").value.trim(),qty=document.getElementById("batchQty").value||"1";
     const status=document.getElementById("batchStatus").value||"在库",loc=document.getElementById("batchLocation").value.trim();
-    const owner=document.getElementById("batchOwner").value.trim(),note=document.getElementById("batchNote").value.trim();
+    const owner=document.getElementById("batchOwner").value.trim(),date=document.getElementById("batchDate").value,note=document.getElementById("batchNote").value.trim();
     const main=getCat(mc),sub=getSub(mc,sc);
-    for(let i=0;i<count;i++){const row={uid:uid(),id:reserveNo(),source:"",assetMainCode:mc,assetMainName:main.name,assetSubCode:sc,assetSubName:sub.name,brand,model,spec,qty,sn:"",check:"待测",status,location:loc,date:"",owner,note,type:"",machineClass:""};rows.push(row);addLog("新增",row,`批量 ${i+1}/${count}`)}
+    for(let i=0;i<count;i++){const row={uid:uid(),id:reserveNo(mc,sc,date),source:"",assetMainCode:mc,assetMainName:main.name,assetSubCode:sc,assetSubName:sub.name,brand,model,spec,qty,sn:"",check:"待测",status,location:loc,date,owner,note,type:"",machineClass:""};rows.push(row);addLog("新增",row,`批量 ${i+1}/${count}`)}
     sortRows();saveState();closeModal('batchMask');renderAll();
 }
 
@@ -1450,7 +2634,18 @@ function syncBulkSub(){
     el.innerHTML='<option value="">保持不变</option>'+getSubs(mc).map(x=>`<option value="${x.code}">${x.name}</option>`).join("");
     refreshSelect(el);
 }
-function syncSubFilter(){syncSubSelect("mainCategoryFilter","subCategoryFilter",false)}
+function syncSubFilter(){
+    const mainCat = document.getElementById("mainCategoryFilter").value;
+    const subEl = document.getElementById("subCategoryFilter");
+    if (!mainCat) {
+        // 大类为空时，清空子类筛选，显示"全部子类"
+        subEl.innerHTML = '<option value="">全部子类</option>';
+        refreshSelect(subEl);
+    } else {
+        // 大类有值时，显示该大类的子类
+        syncSubSelect("mainCategoryFilter","subCategoryFilter",false);
+    }
+}
 function applyBulkEdit(){
     const mc=document.getElementById("bulkMainCategory").value,sc=document.getElementById("bulkSubCategory").value;
     const status=document.getElementById("bulkStatus").value,loc=document.getElementById("bulkLocation").value.trim();
@@ -1468,7 +2663,7 @@ function applyBulkEdit(){
    TRASH MANAGEMENT
    ================================================================ */
 function openTrashModal(){document.getElementById("trashMask").style.display="flex";renderTrash()}
-function restoreTrash(uidValue){const idx=trash.findIndex(r=>r.uid===uidValue);if(idx<0)return;const row=trash[idx];if(isDupId(row.id))row.id=nextNo();rows.push(clone(row));trash.splice(idx,1);sortRows();addLog("恢复",row,"从回收站恢复");saveState();renderAll()}
+function restoreTrash(uidValue){const idx=trash.findIndex(r=>r.uid===uidValue);if(idx<0)return;const row=trash[idx];if(isDupId(row.id))row.id=nextNo(row.assetMainCode,row.assetSubCode,row.date);rows.push(clone(row));trash.splice(idx,1);sortRows();addLog("恢复",row,"从回收站恢复");saveState();renderAll()}
 function permDelete(uidValue){const idx=trash.findIndex(r=>r.uid===uidValue);if(idx<0)return;const row=trash[idx];if(!confirm(`确定彻底删除 ${row.id} 吗？不可恢复。`))return;trash.splice(idx,1);addLog("彻底删除",row);saveState();renderAll()}
 function emptyTrash(){if(!trash.length){alert("回收站已空");return}if(!confirm(`确定清空 ${trash.length} 条吗？`))return;trash=[];addLog("清空回收站",{id:"SYSTEM"});saveState();renderAll()}
 
@@ -1480,7 +2675,12 @@ function loadLocalDraft(){
         rows=normRows(draft.rows||[]);trash=normTrash(draft.trash||[]);logs=normLogs(draft.logs||[]);snapshots=normSnaps(draft.snapshots||[]);safeRemoteVersion=draft.safeRemoteVersion||0;
         migrateAll();ensureUniqueIds();sortRows();saveState();renderAll();alert("草稿已恢复")}catch(e){alert("恢复失败："+e.message)}
 }
-function rollbackSnapshot(idx){const snap=snapshots[idx];if(!snap)return;if(!confirm(`回滚到 v${snap.version||idx+1}？当前数据将被覆盖。`))return;rows=normRows(clone(snap.rows||[]));trash=normTrash(clone(snap.trash||[]));logs=normLogs(clone(snap.logs||[]));migrateAll();ensureUniqueIds();sortRows();pushSnapshot("回滚快照",`回滚到 v${snap.version||idx+1}`);saveState();renderAll()}
+function rollbackSnapshot(idx){const snap=snapshots[idx];if(!snap)return;if(!confirm(`回滚到 v${snap.version||idx+1}？当前数据将被覆盖。`))return;
+
+    // 回滚前先保存当前状态作为备份
+    pushSnapshot("回滚前备份", `回滚到 v${snap.version||idx+1}前自动备份`);
+
+    rows=normRows(clone(snap.rows||[]));trash=normTrash(clone(snap.trash||[]));logs=normLogs(clone(snap.logs||[]));migrateAll();ensureUniqueIds();sortRows();pushSnapshot("回滚快照",`回滚到 v${snap.version||idx+1}`);saveState();renderAll()}
 function refreshSafeHistory(){renderSafeHistory()}
 
 /* ================================================================
@@ -1495,8 +2695,58 @@ function closeLabelPrint(){document.body.classList.remove("label-print-mode");do
 function printFilteredList(){
     const filtered=sorted(getFiltered()),w=window.open("","_blank");if(!w){alert("浏览器阻止了弹窗");return}
     const rowsHtml=filtered.map(r=>`<tr>${CSV_KEYS.map(k=>`<td>${esc(r[k]||"")}</td>`).join("")}</tr>`).join("");
-    w.document.write(`<html><head><meta charset="utf-8"><title>资产清单打印</title><style>body{font-family:Microsoft YaHei,Arial;padding:20px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ccc;padding:6px;text-align:center}th{background:#0f172a;color:#fff}h2{margin:0 0 12px}</style></head><body><h2>TI部资产管理系统 - 资产清单</h2><div style="margin-bottom:10px;color:#666">打印时间：${new Date().toLocaleString()} | 共 ${filtered.length} 条</div><table><thead><tr>${CSV_HEADERS.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`);
+    w.document.write(`<html><head><meta charset="utf-8"><title>资产清单打印</title><style>body{font-family:Microsoft YaHei,Arial;padding:20px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ccc;padding:6px;text-align:center}th{background:#0f172a;color:#fff}h2{margin:0 0 12px}</style></head><body><h2>信息部资产管理系统 - 资产清单</h2><div style="margin-bottom:10px;color:#666">打印时间：${new Date().toLocaleString()} | 共 ${filtered.length} 条</div><table><thead><tr>${CSV_HEADERS.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rowsHtml}</tbody></table></body></html>`);
     w.document.close();w.focus();setTimeout(()=>w.print(),300);
+}
+
+function printInboundReceipt(){
+    const list=sorted(rows.filter(r=>selectedSet.has(r.uid)));
+    if(!list.length){toast("请先在资产台账最左侧勾选需要入库的条目，再打开入库单预览","warn");return}
+    document.getElementById("receiptModalTitle").textContent="资产入库单预览 · 紧凑版";
+    document.getElementById("receiptModalHint").textContent="请先在资产台账左侧勾选条目；可在下方表单中补充来源和签字信息。";
+    const d=todayYmd(),seq=parseInt(lsGet("asset_receipt_preview_seq_"+d,"0"),10)+1;
+    const receiptNo=`RK-${d}-${String(seq).padStart(3,"0")}`;
+    const itemRows=list.map((r,i)=>`<tr data-qty="${esc(r.qty||"1")}"><td>${i+1}</td><td>${esc(r.id)}</td><td class="left"><b>${esc(r.assetSubName||r.assetMainName)}</b></td><td class="left"><span style="font-size:10px">${esc([r.brand,r.model,r.spec].filter(Boolean).join(" ｜ ")||"—")}</span></td><td>${esc(r.qty||"1")} 台/件</td><td><input class="receipt-edit" value="${esc(r.note||"")}" placeholder="可留空" /></td></tr>`).join("");
+    document.getElementById("receiptPreview").innerHTML=`<div class="receipt-tip no-print">已载入 <b>${list.length}</b> 条已勾选资产。此单用于资产管理入库登记，不会改动原台账。</div><section class="receipt-sheet"><input id="receiptCompany" class="receipt-edit receipt-company" value="${esc(lsGet("asset_receipt_company",""))}" placeholder="公司名称" /><h1 class="receipt-title">资产入库单</h1><div class="receipt-meta"><div>入库部门：<input id="receiptDept" class="receipt-edit" value="${DEFAULT_DEPARTMENT}" /></div><div class="right">入库日期：<input id="receiptDate" class="receipt-edit" type="date" value="${new Date().toISOString().slice(0,10)}" /></div><div class="right">单据编号：<input id="receiptNo" class="receipt-edit" value="${receiptNo}" /></div></div><div class="receipt-meta"><div>供应商/来源：<input id="receiptSupplier" class="receipt-edit" placeholder="填写供应商或资产来源" style="width:180px" /></div><div>采购/合同号：<input id="receiptContract" class="receipt-edit" placeholder="可留空" style="width:110px" /></div><div class="right">经办人：<input id="receiptHandler" class="receipt-edit" value="${esc(getOp()==="系统"?"":getOp())}" /></div></div><table class="receipt-table"><thead><tr><th style="width:5%">序号</th><th style="width:20%">资产编号</th><th style="width:17%">资产名称</th><th style="width:37%">品牌型号 / 配置</th><th style="width:10%">数量</th><th>备注</th></tr></thead><tbody>${itemRows}</tbody></table><div class="receipt-summary"><span>资产条目：<b id="receiptRecordTotal">${list.length}</b> 条</span><span>合计数量：<b id="receiptQtyTotal">0</b></span></div><div class="receipt-sign"><div>制单：<input id="receiptMaker" class="receipt-edit" value="${esc(getOp()==="系统"?"":getOp())}" /></div><div>验收人：<input id="receiptChecker" class="receipt-edit" /></div><div>保管人：<input id="receiptKeeper" class="receipt-edit" /></div><div>部门负责人：<input id="receiptLeader" class="receipt-edit" /></div></div><div class="receipt-foot">本单用于信息部资产入库登记与留存。</div></section>`;
+    const headerMeta=document.getElementById("receiptDate")?.closest(".receipt-meta");
+    if(headerMeta){headerMeta.classList.add("receipt-meta-two");document.getElementById("receiptDate").parentElement.remove()}
+    const receiptTable=document.querySelector("#receiptPreview .receipt-table");
+    const receiptHead=receiptTable?.querySelector("thead tr");
+    if(receiptHead){const th=document.createElement("th");th.textContent="入库日期";receiptHead.insertBefore(th,receiptHead.children[4])}
+    receiptTable?.querySelectorAll("tbody tr").forEach((tr,i)=>{const td=document.createElement("td");td.textContent=list[i]?.date||"—";tr.insertBefore(td,tr.children[4])});
+    document.getElementById("receiptMask").style.display="flex";updateReceiptTotals();
+}
+function printOutboundReceipt(){
+    const list=sorted(rows.filter(r=>selectedSet.has(r.uid)));
+    if(!list.length){toast("请先在资产台账最左侧勾选需要出库的条目，再打开出库单预览","warn");return}
+    const d=todayYmd(),seq=parseInt(lsGet("asset_outbound_preview_seq_"+d,"0"),10)+1;
+    const receiptNo=`CK-${d}-${String(seq).padStart(3,"0")}`;
+    const itemRows=list.map((r,i)=>`<tr data-qty="${esc(r.qty||"1")}"><td>${i+1}</td><td>${esc(r.id)}</td><td class="left"><b>${esc(r.assetSubName||r.assetMainName)}</b></td><td class="left"><span style="font-size:10px">${esc([r.brand,r.model,r.spec].filter(Boolean).join(" ｜ ")||"—")}</span></td><td>${esc(r.qty||"1")} 台/件</td><td>${esc(r.status||"在库")}</td><td><input class="receipt-edit outbound-purpose" placeholder="填写领用用途" /></td></tr>`).join("");
+    document.getElementById("receiptModalTitle").textContent="资产出库单预览 · 紧凑版";
+    document.getElementById("receiptModalHint").textContent="请核对已勾选资产，填写领用信息和用途；打印后由领用人签字确认。";
+    document.getElementById("receiptPreview").innerHTML=`<div class="receipt-tip no-print">已载入 <b>${list.length}</b> 条已勾选资产。本单仅生成出库凭证，不会自动修改资产台账状态。</div><section class="receipt-sheet"><input id="receiptCompany" class="receipt-edit receipt-company" value="${esc(lsGet("asset_receipt_company",""))}" placeholder="公司名称" /><h1 class="receipt-title">资产出库单</h1><div class="receipt-meta"><div>出库部门：<input id="receiptDept" class="receipt-edit" value="${DEFAULT_DEPARTMENT}" /></div><div class="right">出库日期：<input id="outboundDate" class="receipt-edit" type="date" value="${new Date().toISOString().slice(0,10)}" /></div><div class="right">单据编号：<input id="receiptNo" class="receipt-edit" value="${receiptNo}" /></div></div><div class="receipt-meta"><div>领用部门：<input id="outboundDepartment" class="receipt-edit" placeholder="填写领用部门" /></div><div>领用人：<input id="outboundRecipient" class="receipt-edit" placeholder="填写领用人" /></div><div class="right">经办人：<input id="outboundHandler" class="receipt-edit" value="${esc(getOp()==="系统"?"":getOp())}" /></div></div><table class="receipt-table"><thead><tr><th>序号</th><th>资产编号</th><th>资产名称</th><th>品牌型号 / 配置</th><th>数量</th><th>当前状态</th><th>出库用途 / 备注</th></tr></thead><tbody>${itemRows}</tbody></table><div class="receipt-summary"><span>资产条目：<b>${list.length}</b> 条</span><span>合计数量：<b id="receiptQtyTotal">0</b></span></div><div class="receipt-sign"><div>制单：<input id="receiptMaker" class="receipt-edit" value="${esc(getOp()==="系统"?"":getOp())}" /></div><div>领用人签字：<input id="outboundRecipientSign" class="receipt-edit" /></div><div>保管人：<input id="receiptKeeper" class="receipt-edit" /></div><div>部门负责人：<input id="receiptLeader" class="receipt-edit" /></div></div><div class="receipt-foot">领用人签字后，本单作为资产出库与领用凭证留存。</div></section>`;
+    document.getElementById("receiptMask").style.display="flex";configureOutboundSign();updateReceiptTotals();
+}
+function configureOutboundSign(){
+    const signArea=document.querySelector("#receiptPreview .receipt-sign");if(!signArea)return;
+    signArea.classList.add("outbound-sign");
+    signArea.innerHTML=`<div>经办人：<input id="outboundHandlerSign" class="receipt-edit" value="${esc(getOp()==="系统"?"":getOp())}" /></div><div>领用人签字：<input id="outboundRecipientSign" class="receipt-edit" /></div>`;
+}
+function amountToChinese(n){
+    const num=Math.round((Number(n)||0)*100),digits="零壹贰叁肆伍陆柒捌玖",units=["","拾","佰","仟","万","拾","佰","仟","亿"];
+    if(num===0)return "零元整";const yuan=Math.floor(num/100),jiao=Math.floor(num%100/10),fen=num%10;
+    let s="",zero=false;String(yuan).split("").reverse().forEach((d,i)=>{if(d==="0"){zero=s!==""||zero}else{if(zero)s="零"+s;zero=false;s=digits[d]+units[i]+s}});s=(s||"零")+"元";
+    if(jiao)s+=digits[jiao]+"角";if(fen)s+=digits[fen]+"分";return s+(jiao||fen?"":"整");
+}
+function updateReceiptTotals(){
+    let qty=0;document.querySelectorAll("#receiptPreview .receipt-table tbody tr").forEach(tr=>{qty+=parseFloat(tr.dataset.qty)||0});
+    const q=document.getElementById("receiptQtyTotal");if(q)q.textContent=qty;
+}
+function closeReceiptPreview(){document.body.classList.remove("receipt-print-mode");document.getElementById("receiptMask").style.display="none"}
+function printReceiptPreview(){
+    const company=document.getElementById("receiptCompany")?.value.trim();if(company)lsSet("asset_receipt_company",company);
+    const no=document.getElementById("receiptNo")?.value||"",m=no.match(/^(RK|CK)-(\d{8})-(\d+)$/);if(m)lsSet((m[1]==="RK"?"asset_receipt_preview_seq_":"asset_outbound_preview_seq_")+m[2],String(parseInt(m[3],10)));
+    document.body.classList.add("receipt-print-mode");setTimeout(()=>window.print(),30);
 }
 
 /* ================================================================
@@ -1532,6 +2782,10 @@ function showImportPreview(rowsData, type, rawData){
 }
 function confirmImport(){
     if(!pendingImport)return;
+
+    // 覆盖前先保存快照，以便回退
+    pushSnapshot("导入前备份", `导入${pendingImport.type}前自动备份`);
+
     const {rows:importRows, rawData}=pendingImport;
     rows=normRows(importRows);
     if(rawData?.trash)trash=normTrash(rawData.trash);
@@ -1544,9 +2798,15 @@ function confirmImport(){
 }
 
 /* ── Excel Export (.xls 格式，Excel可直接打开) ── */
+function sanitizeExcelCell(v){
+    let s = (v??"").toString();
+    // 防止Excel公式注入：对以特殊字符开头的内容添加单引号前缀
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return esc(s);
+}
 function exportExcel(list, prefix){
     const headers=CSV_HEADERS, keys=CSV_KEYS;
-    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>资产台账</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>td{border:1px solid #ccc;padding:4px 8px;}th{background:#0f172a;color:#fff;padding:6px 8px;}</style></head><body><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${list.map(r=>`<tr>${keys.map(k=>`<td>${esc((r[k]??"").toString())}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
+    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>资产台账</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>td{border:1px solid #ccc;padding:4px 8px;}th{background:#0f172a;color:#fff;padding:6px 8px;}</style></head><body><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${list.map(r=>`<tr>${keys.map(k=>`<td>${sanitizeExcelCell(r[k])}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
     downloadText(prefix,"xls",html,"application/vnd.ms-excel",true);
 }
 function exportAllExcel(){exportExcel(sorted(rows),"ledger_all")}
@@ -1575,8 +2835,15 @@ function safeName(h){return h?.name||"未选择"}
 async function initFolders(){
     try{
         syncDirHandle=await loadHandle("syncDirHandle");backupDirHandle=await loadHandle("backupDirHandle");
-        if(syncDirHandle){const ok=await ensurePerm(syncDirHandle);if(!ok)syncDirHandle=null}
-        if(backupDirHandle){const ok=await ensurePerm(backupDirHandle);if(!ok)backupDirHandle=null}
+        // 不自动请求权限，只检查当前权限状态
+        if(syncDirHandle){
+            const hasPerm=await checkPerm(syncDirHandle);
+            if(!hasPerm)syncDirHandle=null
+        }
+        if(backupDirHandle){
+            const hasPerm=await checkPerm(backupDirHandle);
+            if(!hasPerm)backupDirHandle=null
+        }
         refreshFolderStates();
     }catch(e){syncDirHandle=null;backupDirHandle=null;refreshFolderStates()}
 }
@@ -1615,6 +2882,10 @@ async function loadFromSyncFile(){
         if(!exists){alert(`文件夹中没有 ${FILE_NAME}`);return}
         const fh=await syncDirHandle.getFileHandle(FILE_NAME),file=await fh.getFile(),text=await file.text();
         let raw;try{raw=safeJson(text)}catch(e){alert("JSON解析失败："+e.message);return}
+
+        // 覆盖前先保存快照，以便回退
+        pushSnapshot("微盘加载前备份", "从微盘加载前自动备份");
+
         rows=normRows(raw.rows||[]);trash=normTrash(raw.trash||[]);logs=normLogs(raw.logs||[]);snapshots=normSnaps(raw.snapshots||[]);safeRemoteVersion=raw.version||0;
         migrateAll();ensureUniqueIds();sortRows();pushSnapshot("从微盘加载");saveState();renderAll();refreshFolderStates();setSyncInfo("已从微盘加载");alert("加载成功！")
     }catch(e){alert(`加载失败：${e.message}`)}
@@ -1630,10 +2901,10 @@ async function saveToBackupFile(){
    ================================================================ */
 function saveAllDebounced(){clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{try{pushSnapshot();sortRows();saveState();renderStats();renderCharts();renderLogs();renderSafeHistory();refreshFolderStates();updateFreshness();if(backupDirHandle)try{await saveToBackupFile()}catch(e){}}catch(e){setSyncInfo("自动保存失败："+e.message)}},250)}
 async function saveNow(){
-    try{pushSnapshot("立即保存");ensureUniqueIds();sortRows();const ok=saveState();renderAll();refreshFolderStates();updateFreshness();let bok=true;if(backupDirHandle)bok=await saveToBackupFile();
+    try{pushSnapshot("立即保存");ensureUniqueIds();sortRows();const ok=await saveState();renderAll();refreshFolderStates();updateFreshness();let bok=true;if(backupDirHandle)bok=await saveToBackupFile();
         if(!ok)setSyncInfo("本地缓存写入有警告");else setSyncInfo(bok?(backupDirHandle?"已保存并备份":"已保存"):"已保存，备份失败")}catch(e){toast("保存失败："+e.message,"error");setSyncInfo("保存失败："+e.message)}
 }
-function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts()}
+function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts();renderBorrowRecords();renderRepairRecords();renderInventoryRecords();renderTransferRecords()}
 function resetDemo(){
     if(!confirm("确认恢复示例数据？当前数据将被覆盖。"))return;
     rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];selectedSet.clear();idReserveSet.clear();safeRemoteVersion=0;
@@ -1660,7 +2931,7 @@ function setupKeyboard(){
         else if(ctrl&&e.key==="s"){e.preventDefault();saveNow()}
         else if(ctrl&&e.key==="z"){e.preventDefault();if(snapshots.length>0){rollbackSnapshot(0)}else{alert("没有可撤销的快照")}}
         else if(e.key==="Delete"||e.key==="Del"){if(selectedSet.size>0){e.preventDefault();moveSelToTrash()}}
-        else if(e.key==="Escape"){["rowMask","batchMask","bulkEditMask","trashMask","importPreviewMask","catMgrMask"].forEach(id=>closeModal(id));closeLabelPrint();clearSel();document.querySelectorAll("details").forEach(d=>d.open=false)}
+        else if(e.key==="Escape"){["rowMask","batchMask","bulkEditMask","trashMask","importPreviewMask","catMgrMask"].forEach(id=>closeModal(id));closeLabelPrint();closeReceiptPreview();clearSel();document.querySelectorAll("details").forEach(d=>d.open=false)}
     });
 }
 
@@ -1730,14 +3001,117 @@ const CSV_COLS=COLUMNS.filter(c=>c.key!=="assetMainCode"&&c.key!=="assetSubCode"
 const CSV_HEADERS=CSV_COLS.map(c=>c.label);
 const CSV_KEYS=CSV_COLS.map(c=>c.key);
 
+/* ================================================================
+   FOLD PANELS STATE
+   ================================================================ */
+const FOLD_PANELS_STORAGE_KEY = "ti_asset_fold_panels_v1";
+
+// 需要保存状态的折叠面板ID列表
+const FOLD_PANEL_IDS = [
+    "statusChartPanel",
+    "typeChartPanel",
+    // 文件夹状态
+    // 操作日志
+    // 回收站
+    // 借用管理
+    // 维修记录
+    // 资产转移
+    // 折旧统计
+    // 资产盘点
+    // 安全留痕
+];
+
+function getFoldPanelsState() {
+    try {
+        const saved = localStorage.getItem(FOLD_PANELS_STORAGE_KEY);
+        return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveFoldPanelsState() {
+    try {
+        const state = {};
+        // 保存指定的折叠面板状态
+        FOLD_PANEL_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                state[id] = el.open;
+            }
+        });
+        // 也保存其他fold-panel的状态
+        document.querySelectorAll('details.fold-panel').forEach(el => {
+            if (el.id) {
+                state[el.id] = el.open;
+            }
+        });
+        localStorage.setItem(FOLD_PANELS_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+        console.warn('保存折叠面板状态失败:', e);
+    }
+}
+
+function restoreFoldPanelsState() {
+    const state = getFoldPanelsState();
+    Object.entries(state).forEach(([id, isOpen]) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.open = isOpen;
+        }
+    });
+}
+
+function initFoldPanels() {
+    // 恢复折叠面板状态
+    restoreFoldPanelsState();
+
+    // 为所有fold-panel添加toggle事件监听
+    document.querySelectorAll('details.fold-panel').forEach(el => {
+        el.addEventListener('toggle', () => {
+            saveFoldPanelsState();
+        });
+    });
+
+    // 关联状态分布和类别分布面板的展开/折叠
+    const statusPanel = document.getElementById('statusChartPanel');
+    const typePanel = document.getElementById('typeChartPanel');
+
+    if (statusPanel && typePanel) {
+        // 同步状态：当一个面板改变时，同步另一个面板
+        statusPanel.addEventListener('toggle', () => {
+            if (typePanel.open !== statusPanel.open) {
+                typePanel.open = statusPanel.open;
+            }
+        });
+
+        typePanel.addEventListener('toggle', () => {
+            if (statusPanel.open !== typePanel.open) {
+                statusPanel.open = typePanel.open;
+            }
+        });
+    }
+}
+
+window.addEventListener("afterprint",()=>document.body.classList.remove("receipt-print-mode"));
 window.addEventListener("load",async()=>{
     initColVis();
     loadCatTree();
     syncMainFilterOpts();
     initDark();initDensity();
+    initFoldPanels(); // 初始化折叠面板状态
     /* FAB scroll */
     window.addEventListener("scroll",()=>{const fab=document.getElementById("fabTop");if(fab)fab.classList.toggle("visible",window.scrollY>400)});
-    loadState();
+
+    // 初始化 IndexedDB
+    try {
+        idb = await openIDB();
+        console.log('IndexedDB 初始化成功');
+    } catch (e) {
+        console.warn('IndexedDB 初始化失败，使用 localStorage:', e);
+    }
+
+    await loadState();
     document.getElementById("rowFormGrid").innerHTML=buildRowFormGrid();
     await initFolders();
     renderAll();
