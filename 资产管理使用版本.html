@@ -2635,7 +2635,7 @@ function saveRowModal(){
             const row=rows.find(r=>r.uid===editingUid);if(!row)return;
             if(isDupId(data.id,row.uid)){alert(`编号 ${data.id} 已存在`);return}
             const main=getCat(data.assetMainCode||defMainCode()),sub=getSub(main.code,data.assetSubCode||defSubCode(main.code));
-            const keepAvailable=isBatch(row)?availableQty(row):null;Object.assign(row,data,{assetMainName:main.name,assetSubName:sub.name});if(row.inventoryMode==="batch")row.availableQty=String(Math.min(parseInt(row.qty,10)||1,keepAvailable??parseInt(row.qty,10)||1));
+            const keepAvailable=isBatch(row)?availableQty(row):null;Object.assign(row,data,{assetMainName:main.name,assetSubName:sub.name});if(row.inventoryMode==="batch")row.availableQty=String(Math.min(parseInt(row.qty,10)||1,keepAvailable??(parseInt(row.qty,10)||1)));
             addLog("修改",row);sortRows();committed=true;
         }
         saveState();formDirty=false;
