@@ -422,10 +422,29 @@ body.dark .page-size-select select { background: var(--surface); border-color: v
 .stock-summary { display:flex; flex-wrap:wrap; gap:5px; font-size:11px; font-weight:700; padding:5px 8px; line-height:1.45; }
 .stock-summary span { padding:2px 6px; border-radius:999px; background:#eff6ff; color:#1d4ed8; }
 .stock-summary .out { background:#fff7ed; color:#c2410c; }
+.stock-summary .install { background:#f0fdf4; color:#15803d; }
+.stock-summary .pending { background:#fefce8; color:#a16207; }
 .stock-summary .total { background:#f1f5f9; color:#475569; }
 body.dark .stock-summary span { background:#1e3a5f; color:#93c5fd; }
 body.dark .stock-summary .out { background:#4a2710; color:#fdba74; }
+body.dark .stock-summary .install { background:#123c2b; color:#86efac; }
+body.dark .stock-summary .pending { background:#45370b; color:#fde047; }
 body.dark .stock-summary .total { background:#334155; color:#cbd5e1; }
+.spec-editor { grid-column:1 / -1; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--surface-2); }
+.spec-editor-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; }
+.spec-editor-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.record-summary { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+.record-chip { display:inline-flex; align-items:center; gap:5px; padding:5px 9px; border-radius:999px; background:#eef2ff; color:#3730a3; font-size:11px; font-weight:700; }
+.history-box { grid-column:1 / -1; border-top:1px solid var(--line); margin-top:4px; padding-top:12px; }
+.history-list { display:grid; gap:7px; margin-top:8px; max-height:190px; overflow:auto; }
+.history-item { border:1px solid var(--line); border-radius:9px; padding:8px 10px; background:var(--surface-2); font-size:12px; line-height:1.6; }
+.config-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.config-card { border:1px solid var(--line); border-radius:12px; padding:12px; background:var(--surface-2); }
+.config-card h4 { margin:0 0 6px; font-size:13px; }
+.config-card .meta { line-height:1.6; }
+body.dark .record-chip { background:#312e81; color:#c7d2fe; }
+@media (max-width:900px){.spec-editor-grid,.config-grid{grid-template-columns:1fr 1fr}}
+@media (max-width:600px){.spec-editor-grid,.config-grid{grid-template-columns:1fr}}
 
 /* ── 更新说明 ── */
 .release-notes { display: grid; gap: 12px; color: var(--text); line-height: 1.7; }
@@ -486,7 +505,7 @@ body.dark .stock-summary .total { background:#334155; color:#cbd5e1; }
     <div class="topbar">
         <div class="brand">
             <h1>信息部资产管理系统</h1>
-            <p>v2.1 — 支持新编号规则、资产入库单、状态跟踪、导入导出、标签打印 | 快捷键：<span class="shortcut-kbd">Ctrl+N</span> 新增 <span class="shortcut-kbd">Ctrl+S</span> 保存 <span class="shortcut-kbd">Ctrl+F</span> 搜索 <span class="shortcut-kbd">Del</span> 删除 <span class="shortcut-kbd">Esc</span> 取消</p>
+            <p>v2.2 — 批次领用、动态规格、整机配件关联、完整流水与安全备份 | 快捷键：<span class="shortcut-kbd">Ctrl+N</span> 新增 <span class="shortcut-kbd">Ctrl+S</span> 保存 <span class="shortcut-kbd">Ctrl+F</span> 搜索 <span class="shortcut-kbd">Del</span> 删除 <span class="shortcut-kbd">Esc</span> 取消</p>
         </div>
         <div class="actions actions-compact no-print">
             <button class="btn-primary" onclick="saveNow()">💾 立即保存</button>
@@ -662,6 +681,30 @@ body.dark .stock-summary .total { background:#334155; color:#cbd5e1; }
         </div>
     </details>
 
+    <!-- ISSUE RECORDS -->
+    <details class="fold-panel" id="issuePanel">
+        <summary class="fold-head"><span>⚡ 领用记录</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">查看领用人、部门、用途、数量、日期和备注。完整流水随 JSON、微盘和备份保存。</div>
+                <div class="actions no-print"><button class="btn-soft" onclick="renderIssueRecords()">刷新</button></div>
+            </div>
+            <div class="log-body"><table style="min-width:1250px;"><thead><tr><th>领用单号</th><th>资产编号</th><th>数量</th><th>领用人</th><th>部门</th><th>日期</th><th>用途</th><th>备注</th><th>状态</th></tr></thead><tbody id="issueBody"></tbody></table></div>
+        </div>
+    </details>
+
+    <!-- INSTALL RECORDS -->
+    <details class="fold-panel" id="installPanel">
+        <summary class="fold-head"><span>🧩 装机记录</span><span class="fold-tip">点击折叠</span></summary>
+        <div class="fold-body">
+            <div class="panel-head" style="padding:0 0 12px;border-bottom:none;">
+                <div class="meta">记录配件装入、拆下或更换到哪台整机，可从整机和配件两端追溯。</div>
+                <div class="actions no-print"><button class="btn-soft" onclick="renderInstallRecords()">刷新</button></div>
+            </div>
+            <div class="log-body"><table style="min-width:1350px;"><thead><tr><th>装机单号</th><th>整机编号</th><th>配件编号</th><th>配件规格</th><th>数量</th><th>安装位置</th><th>安装日期</th><th>安装人</th><th>状态</th><th>拆机日期</th><th>备注</th></tr></thead><tbody id="installBody"></tbody></table></div>
+        </div>
+    </details>
+
     <!-- TRASH -->
     <details class="fold-panel" id="trashPanel">
         <summary class="fold-head"><span>回收站</span><span class="fold-tip">点击折叠</span></summary>
@@ -786,7 +829,7 @@ body.dark .stock-summary .total { background:#334155; color:#cbd5e1; }
         </div>
     </details>
 
-    <div class="footer-tip">© 2026 鑫玺生物科技 信息部 | 内部资产管理系统 v2.0</div>
+    <div class="footer-tip">© 2026 鑫玺生物科技 信息部 | 内部资产管理系统 v2.2</div>
     <button class="fab-btn" id="fabTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到顶部">⬆</button>
 </div>
 
@@ -794,11 +837,11 @@ body.dark .stock-summary .total { background:#334155; color:#cbd5e1; }
 <div id="releaseNotesMask" class="mask" onclick="if(event.target===this)closeModal('releaseNotesMask')"><div class="modal" style="width:min(760px,100%);">
     <div class="modal-head"><h3>📘 更新说明</h3><button class="btn-danger" onclick="closeModal('releaseNotesMask')">关闭</button></div>
     <div class="release-notes">
-        <p class="release-intro"><span class="release-version">v2.1 优化版</span> · 本说明随系统页面发布，可随时点击顶栏的 📘 图标查看。</p>
-        <section><h4>资产操作与状态管理</h4><ul><li>新增借用登记、归还、维修登记、维修完成、资产转移和盘点记录。</li><li>补充已借出、维修中、已出售、已丢失等状态，方便跟踪资产全生命周期。</li><li>新增资产编号建议、必填字段校验和重复编号/序列号检查，减少录入错误。</li></ul></section>
-        <section><h4>检索与台账体验</h4><ul><li>新增高级搜索，可按品牌、型号、规格、序列号、位置、责任人、日期、数量及检测结果组合筛选。</li><li>新增分页与每页条数选择；较大台账浏览更流畅。</li><li>支持保存并恢复折叠面板状态，常用操作区域更易管理。</li></ul></section>
-        <section><h4>单据与导出</h4><ul><li>新增横向 A4 资产入库单、出库单预览与打印，支持填写公司、来源、领用人、用途和签字信息。</li><li>导出 Excel 时会清理可能被表格软件当作公式执行的内容，提升数据安全性。</li></ul></section>
-        <section><h4>使用提示</h4><ul><li>系统数据仍保存在浏览器本地；请定期通过“更多”菜单导出 JSON 或 Excel 备份。</li><li>点击“☁ 上传微盘”前，请确认已授权同步文件夹。</li></ul></section>
+        <p class="release-intro"><span class="release-version">v2.2 配置追溯版</span> · 本说明随系统页面发布，可随时点击顶栏的 📘 图标查看。</p>
+        <section><h4>更清楚的规格录入</h4><ul><li>移除台账中单独占位的“内存代际”列，统一在“规格”列展示。</li><li>内存、硬盘、电源、CPU、显卡、显示器、台式机、笔记本、交换机和打印机可按子类选择固定规格。</li><li>内存支持 DDR2 → DDR5 的业务顺序排序；旧规格文本不会被自动覆盖，只在信息明确时辅助选中规格。</li></ul></section>
+        <section><h4>批次领用与完整流水</h4><ul><li>无序列号、多数量资产按批次管理，单次领用只扣减所填数量；有序列号资产仍按单件登记。</li><li>库存列同时显示可用、已领、已装、待检和总计，部分使用状态一眼可见。</li><li>新增“领用记录”面板，并在资产编辑页展示领用人、部门、日期、用途和备注。</li></ul></section>
+        <section><h4>整机与配件关联</h4><ul><li>整机可直接装入库存配件：批次配件自动扣减数量，独立序列号配件自动改为已装机。</li><li>记录装机单号、整机、配件、规格、数量、槽位、日期、安装人和备注。</li><li>支持拆回在库或拆下待检，当前配置与历史记录分开显示，整机和配件两端均可追溯。</li></ul></section>
+        <section><h4>数据兼容与备份</h4><ul><li>领用与装机记录已纳入本地数据库、JSON、微盘同步、备份文件和历史快照。</li><li>CSV / Excel 导出会使用统一后的规格展示，同时保留 JSON 中原始规格与旧数据字段。</li></ul></section>
     </div>
     <div class="modal-actions"><button class="btn-primary" onclick="closeModal('releaseNotesMask')">我知道了</button></div>
 </div></div>
@@ -808,6 +851,20 @@ body.dark .stock-summary .total { background:#334155; color:#cbd5e1; }
     <div class="hint" id="issueAssetHint" style="margin-bottom:12px;"></div>
     <div class="form-grid" id="issueFormGrid"></div>
     <div class="modal-actions"><button class="btn-secondary" onclick="closeModal('issueMask')">取消</button><button class="btn-primary" onclick="saveIssue()">确认领用</button></div>
+</div></div>
+
+<div id="machineConfigMask" class="mask"><div class="modal" style="width:min(1050px,100%);">
+    <div class="modal-head"><div><h3 style="margin:0;">🖥 整机配置</h3><div class="small" id="machineConfigTitle"></div></div><button class="btn-danger" onclick="closeModal('machineConfigMask')">关闭</button></div>
+    <div class="record-summary" id="machineConfigSummary"></div>
+    <div id="machineCurrentConfig" class="config-grid"></div>
+    <div class="history-box"><div class="panel-head" style="padding:0;border:0;"><div><b>配置历史</b><div class="small">装机、拆机和更换记录不会因当前配置改变而消失。</div></div><button class="btn-primary" id="openInstallBtn">+ 装配件</button></div><div id="machineConfigHistory" class="history-list"></div></div>
+</div></div>
+
+<div id="installMask" class="mask"><div class="modal" style="width:min(680px,100%);">
+    <div class="modal-head"><h3>🧩 装配件</h3><button class="btn-danger" onclick="closeModal('installMask')">关闭</button></div>
+    <div class="hint" id="installMachineHint" style="margin-bottom:12px;"></div>
+    <div class="form-grid" id="installFormGrid"></div>
+    <div class="modal-actions"><button class="btn-secondary" onclick="closeModal('installMask')">取消</button><button class="btn-primary" onclick="saveInstall()">确认装机</button></div>
 </div></div>
 
 <div id="rowMask" class="mask"><div class="modal">
@@ -905,6 +962,7 @@ const STORAGE_REPAIRS = "ti_asset_db_repairs_v4";
 const STORAGE_INVENTORY = "ti_asset_db_inventory_v4";
 const STORAGE_TRANSFERS = "ti_asset_db_transfers_v4";
 const STORAGE_ISSUES = "ti_asset_db_issues_v1";
+const STORAGE_INSTALLS = "ti_asset_db_installs_v1";
 const DB_NAME = "ti_asset_db_handles";
 const DB_STORE = "handles";
 const FILE_NAME = "ledger.json";
@@ -1066,6 +1124,70 @@ function syncMainFilterOpts(){
     refreshSelect(el);
 }
 
+/* 按资产子类切换的规格模板；原始 spec 文本始终保留 */
+const SPEC_TEMPLATES = {
+    MEMORY:{title:"内存条规格",fields:[
+        {key:"generation",label:"内存代际",options:["DDR2","DDR3","DDR3L","DDR4","DDR5"]},
+        {key:"capacity",label:"容量",options:["2GB","4GB","8GB","16GB","32GB","64GB","128GB"]},
+        {key:"speed",label:"频率",options:["1333MHz","1600MHz","1866MHz","2133MHz","2400MHz","2666MHz","3200MHz","3600MHz","4800MHz","5600MHz"]},
+        {key:"form",label:"形态",options:["UDIMM","SO-DIMM","RDIMM","ECC UDIMM"]}
+    ]},
+    HDD:{title:"硬盘规格",fields:[
+        {key:"driveType",label:"类型",options:["HDD","SATA SSD","NVMe SSD","SAS HDD","SAS SSD"]},
+        {key:"capacity",label:"容量",options:["128GB","256GB","512GB","1TB","2TB","4TB","8TB","12TB","16TB"]},
+        {key:"interface",label:"接口",options:["SATA","M.2 NVMe","SAS","U.2","PCIe"]},
+        {key:"form",label:"尺寸",options:["M.2 2230","M.2 2242","M.2 2280","2.5 英寸","3.5 英寸"]}
+    ]},
+    PSU:{title:"电源规格",fields:[
+        {key:"wattage",label:"额定功率",options:["300W","400W","450W","500W","550W","600W","650W","750W","850W","1000W"]},
+        {key:"certification",label:"认证",options:["无认证","80 Plus 白牌","80 Plus 铜牌","80 Plus 银牌","80 Plus 金牌","80 Plus 铂金"]},
+        {key:"modular",label:"模组",options:["非模组","半模组","全模组"]},
+        {key:"form",label:"尺寸",options:["ATX","SFX","SFX-L","1U"]}
+    ]},
+    CPU:{title:"CPU 规格",fields:[
+        {key:"platform",label:"平台",options:["Intel","AMD","ARM"]},
+        {key:"socket",label:"接口",options:["LGA1151","LGA1200","LGA1700","AM4","AM5","TR4"]},
+        {key:"cores",label:"核心/线程",options:["2核4线程","4核4线程","4核8线程","6核12线程","8核16线程","12核24线程","16核32线程"]},
+        {key:"generation",label:"代际",options:["Intel 6代","Intel 7代","Intel 8代","Intel 9代","Intel 10代","Intel 11代","Intel 12代","Intel 13代","Intel 14代","Ryzen 3000","Ryzen 5000","Ryzen 7000","Ryzen 9000"]}
+    ]},
+    GPU:{title:"显卡规格",fields:[
+        {key:"chipset",label:"芯片型号",options:["GT 1030","GTX 1050","GTX 1650","GTX 1660","RTX 2060","RTX 3060","RTX 4060","RTX 4070","RX 580","RX 6600","RX 7600"]},
+        {key:"vram",label:"显存容量",options:["2GB","4GB","6GB","8GB","12GB","16GB","24GB"]},
+        {key:"vramType",label:"显存类型",options:["GDDR5","GDDR6","GDDR6X"]},
+        {key:"interface",label:"接口",options:["PCIe 3.0","PCIe 4.0","PCIe 5.0"]}
+    ]},
+    MONITOR:{title:"显示器规格",fields:[
+        {key:"size",label:"尺寸",options:["19 英寸","21.5 英寸","23.8 英寸","24 英寸","27 英寸","32 英寸","34 英寸"]},
+        {key:"resolution",label:"分辨率",options:["1366×768","1920×1080","2560×1440","3840×2160"]},
+        {key:"refresh",label:"刷新率",options:["60Hz","75Hz","100Hz","120Hz","144Hz","165Hz","240Hz"]},
+        {key:"ports",label:"接口",options:["VGA","HDMI","DP","HDMI + DP","Type-C + HDMI"]}
+    ]},
+    DESKTOP:{title:"台式机规格",fields:[
+        {key:"cpu",label:"CPU",options:["i3","i5","i7","i9","Ryzen 3","Ryzen 5","Ryzen 7","Ryzen 9"]},
+        {key:"memory",label:"内存",options:["4GB","8GB","16GB","32GB","64GB"]},
+        {key:"storage",label:"硬盘",options:["256GB SSD","512GB SSD","1TB SSD","1TB HDD","2TB HDD"]},
+        {key:"os",label:"操作系统",options:["Windows 10","Windows 11","Linux","无系统"]}
+    ]},
+    LAPTOP:{title:"笔记本规格",fields:[
+        {key:"cpu",label:"CPU",options:["i3","i5","i7","i9","Ryzen 3","Ryzen 5","Ryzen 7","Ryzen 9"]},
+        {key:"memory",label:"内存",options:["8GB","16GB","32GB","64GB"]},
+        {key:"storage",label:"硬盘",options:["256GB SSD","512GB SSD","1TB SSD","2TB SSD"]},
+        {key:"screen",label:"屏幕",options:["13.3 英寸","14 英寸","15.6 英寸","16 英寸","17.3 英寸"]}
+    ]},
+    SWITCH:{title:"交换机规格",fields:[
+        {key:"ports",label:"端口数量",options:["5口","8口","16口","24口","48口"]},
+        {key:"speed",label:"端口速率",options:["百兆","千兆","2.5G","10G"]},
+        {key:"poe",label:"PoE",options:["不支持 PoE","PoE","PoE+"]},
+        {key:"managed",label:"管理类型",options:["非网管","轻网管","全网管"]}
+    ]},
+    PRINTER:{title:"打印机规格",fields:[
+        {key:"printType",label:"打印类型",options:["激光","喷墨","针式","热敏"]},
+        {key:"color",label:"颜色",options:["黑白","彩色"]},
+        {key:"connection",label:"连接方式",options:["USB","网口","Wi-Fi","USB + 网口","USB + Wi-Fi"]},
+        {key:"duplex",label:"双面打印",options:["不支持","手动双面","自动双面"]}
+    ]}
+};
+
 const STATUSES = [
     {value:"在库", cls:"s-in", color:"#16a34a"},
     {value:"待检测", cls:"s-wait", color:"#f59e0b"},
@@ -1074,7 +1196,8 @@ const STATUSES = [
     {value:"维修中", cls:"s-repair", color:"#ea580c"},
     {value:"已报废", cls:"s-scrap", color:"#64748b"},
     {value:"已出售", cls:"s-sell", color:"#8b5cf6"},
-    {value:"已丢失", cls:"s-lost", color:"#ef4444"}
+    {value:"已丢失", cls:"s-lost", color:"#ef4444"},
+    {value:"已装机", cls:"s-use", color:"#7c3aed"}
 ];
 const STATUS_MAP = Object.fromEntries(STATUSES.map(s=>[s.value,s]));
 const STATUS_OPTIONS = STATUSES.map(s=>s.value);
@@ -1085,10 +1208,9 @@ const COLUMNS = [
     {key:"assetSubCode", label:"资产子类", width:"160px", sortable:false, type:"subCat", defaultVis:true, required:true},
     {key:"brand", label:"品牌", width:"110px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"model", label:"型号", width:"140px", sortable:false, type:"text", defaultVis:true, required:false},
-    {key:"spec", label:"规格", width:"170px", sortable:false, type:"assetSpec", defaultVis:true, required:false},
+    {key:"spec", label:"规格", width:"190px", sortable:true, type:"assetSpec", defaultVis:true, required:false},
     {key:"qty", label:"数量", width:"70px", sortable:false, type:"number", defaultVis:true, required:false},
     {key:"availableQty", label:"库存", width:"145px", sortable:false, type:"stock", defaultVis:true, required:false},
-    {key:"memoryStandard", label:"内存代际", width:"100px", sortable:true, type:"memory", defaultVis:false, required:false},
     {key:"sn", label:"序列号", width:"130px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"check", label:"检测结果", width:"110px", sortable:false, type:"text", defaultVis:true, required:false},
     {key:"status", label:"当前状态", width:"110px", sortable:false, type:"status", defaultVis:true, required:true},
@@ -1148,6 +1270,7 @@ let filteredCache = [];  // 缓存筛选结果
 // 借用记录
 let borrowRecords = [];  // {id, assetId, borrower, borrowDate, expectedReturnDate, actualReturnDate, purpose, status, note}
 let issueRecords = [];   // 无序列号批次资产的永久领用流水
+let installRecords = []; // 整机—配件装机/拆机流水
 
 // 维修记录
 let repairRecords = [];  // {id, assetId, repairDate, repairType, description, cost, repairer, status, completionDate, note}
@@ -1185,11 +1308,37 @@ const parseNo = id => {
 const sumQty = list => list.reduce((a,r)=>a+(parseFloat(r.qty)||0),0);
 const totalQty = r => Math.max(1,parseInt(r.qty||"1",10)||1);
 const availableQty = r => r.inventoryMode==="batch" ? Math.max(0,Math.min(totalQty(r),parseInt(r.availableQty??r.qty,10)||0)) : (r.status==="在库"||r.status==="待检测"?totalQty(r):0);
-const issuedQty = r => r.inventoryMode==="batch" ? totalQty(r)-availableQty(r) : (r.status==="已领用"?totalQty(r):0);
 const isBatch = r => r.inventoryMode==="batch";
-function displayStatus(r){if(isBatch(r)&&issuedQty(r)>0&&availableQty(r)>0)return "部分领用";if(isBatch(r)&&availableQty(r)===0&&issuedQty(r)>0)return "已领完";return r.status||"待检测"}
-function memorySummary(r){return [r.memoryStandard,r.memoryCapacity,r.memorySpeed,r.memoryForm].filter(Boolean).join(" · ")}
+const installedQty = r => installRecords.filter(x=>x.componentAssetId===r.id&&x.status==="已装机").reduce((n,x)=>n+(parseInt(x.qty,10)||1),0);
+const pendingCheckQty = r => installRecords.filter(x=>x.componentAssetId===r.id&&x.status==="已拆机待检").reduce((n,x)=>n+(parseInt(x.qty,10)||1),0);
+const issuedQty = r => r.inventoryMode==="batch" ? Math.max(0,totalQty(r)-availableQty(r)-installedQty(r)-pendingCheckQty(r)) : (r.status==="已领用"?totalQty(r):0);
+function displayStatus(r){
+    if(isBatch(r)&&availableQty(r)>0&&(issuedQty(r)>0||installedQty(r)>0||pendingCheckQty(r)>0))return "部分使用";
+    if(isBatch(r)&&pendingCheckQty(r)>0&&availableQty(r)===0&&installedQty(r)===0&&issuedQty(r)===0)return "待检测";
+    if(isBatch(r)&&availableQty(r)===0&&installedQty(r)>0&&issuedQty(r)===0)return "已全部装机";
+    if(isBatch(r)&&availableQty(r)===0&&issuedQty(r)>0)return "已领完";
+    return r.status||"待检测";
+}
 const MEMORY_ORDER={DDR2:2,DDR3:3,DDR3L:3.1,DDR4:4,DDR5:5};
+function inferSpecData(row){
+    const raw=(row.spec||"").trim(), template=SPEC_TEMPLATES[row.assetSubCode];
+    const result={...(row.specData&&typeof row.specData==="object"?row.specData:{})};
+    if(row.assetSubCode==="MEMORY"){
+        if(!result.generation)result.generation=row.memoryStandard||((raw.match(/DDR\s*(3L|[2345])/i)||[])[0]||"").replace(/\s/g,"").toUpperCase();
+        if(!result.capacity){const m=raw.match(/(?:^|\D)(2|4|8|16|32|64|128)\s*G(?:B)?(?:\D|$)/i);if(m)result.capacity=m[1]+"GB"}
+        if(!result.speed){const m=raw.match(/(?:^|\D)(1333|1600|1866|2133|2400|2666|3200|3600|4800|5600)\s*(?:MHz)?(?:\D|$)/i);if(m)result.speed=m[1]+"MHz"}
+        if(!result.form){if(/SO[- ]?DIMM|笔记本/i.test(raw))result.form="SO-DIMM";else if(/RDIMM/i.test(raw))result.form="RDIMM";else if(/ECC/i.test(raw))result.form="ECC UDIMM";else if(/UDIMM/i.test(raw))result.form="UDIMM"}
+    }
+    if(template)template.fields.forEach(field=>{if(result[field.key])return;const option=field.options.slice().sort((a,b)=>b.length-a.length).find(v=>raw.toLowerCase().includes(v.toLowerCase()));if(option)result[field.key]=option});
+    return result;
+}
+function specSummary(row){
+    const template=SPEC_TEMPLATES[row.assetSubCode],raw=(row.spec||"").trim();if(!template)return raw;
+    const data=inferSpecData(row),structured=template.fields.map(f=>data[f.key]).filter(Boolean).join(" · "),hasSaved=Object.values(row.specData||{}).some(Boolean);
+    if(!hasSaved)return raw||structured;
+    return structured&&raw&&structured!==raw?`${structured} ｜ 原始：${raw}`:(structured||raw);
+}
+function specSortValue(row){if(row.assetSubCode==="MEMORY"){const d=inferSpecData(row),rank=MEMORY_ORDER[d.generation]||99;return `${String(rank).padStart(4,"0")}-${d.capacity||""}-${d.speed||""}`}return specSummary(row)}
 const todayYmd = (d=new Date()) => { const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0"); return `${y}${m}${day}`; };
 const statusCls = s => (STATUS_MAP[s]||{cls:"s-wait"}).cls;
 const getOp = () => (document.getElementById("operatorInput")?.value||"").trim()||"系统";
@@ -1399,6 +1548,7 @@ function showCtxMenu(e,uidValue){
     const row=rows.find(r=>r.uid===uidValue);if(!row)return;
     menu.innerHTML=`
         <button onclick="openRowModal('edit','${uidValue}');hideCtxMenu()">✏️ 编辑</button>
+        ${isMachine(row)?`<button onclick="openMachineConfig('${uidValue}');hideCtxMenu()">🖥 整机配置</button>`:""}
         <button onclick="dupRow('${uidValue}');hideCtxMenu()">📋 复制</button>
         <button onclick="toggleRowSel('${uidValue}',!${selectedSet.has(uidValue)});renderTable();selectionBar();hideCtxMenu()">${selectedSet.has(uidValue)?'☐ 取消选择':'☑ 选择'}</button>
         <div class="ctx-sep"></div>
@@ -1449,6 +1599,7 @@ function normRow(r){
         location:r.location??"", date:r.date??"", owner:r.owner??"", note:r.note??"",
         type:r.type??"", machineClass:r.machineClass??"", inventoryMode,
         availableQty:String(Math.max(0,Math.min(qty,parseInt(r.availableQty??qty,10)||0))),
+        specData:r.specData&&typeof r.specData==="object"?{...r.specData}:{},
         memoryStandard:r.memoryStandard??"", memoryCapacity:r.memoryCapacity??"", memorySpeed:r.memorySpeed??"", memoryForm:r.memoryForm??""
     };
 }
@@ -1506,7 +1657,7 @@ function sortRows(){rows.sort(sortComp)}
 function sorted(list){
     if(sortKey==="id"){const arr=list.slice().sort(sortComp);return sortAsc?arr:arr.reverse()}
     const arr=list.slice().sort((a,b)=>{
-        if(sortKey==="memoryStandard"){const ma=MEMORY_ORDER[a.memoryStandard]||99,mb=MEMORY_ORDER[b.memoryStandard]||99;if(ma!==mb)return ma-mb;return (a.memoryCapacity||"").localeCompare(b.memoryCapacity||"","zh-Hans-CN",{numeric:true})}
+        if(sortKey==="spec")return specSortValue(a).localeCompare(specSortValue(b),"zh-Hans-CN",{numeric:true});
         const va=(a[sortKey]??"").toString(), vb=(b[sortKey]??"").toString();
         const na=parseFloat(va), nb=parseFloat(vb);
         if(!isNaN(na)&&!isNaN(nb))return na-nb;
@@ -1558,6 +1709,7 @@ async function loadState(){
             inventoryRecords = safeJson(lsGet(STORAGE_INVENTORY,"[]"))||[];
             transferRecords = safeJson(lsGet(STORAGE_TRANSFERS,"[]"))||[];
             issueRecords = safeJson(lsGet(STORAGE_ISSUES,"[]"))||[];
+            installRecords = safeJson(lsGet(STORAGE_INSTALLS,"[]"))||[];
             // 迁移到 IndexedDB
             await migrateToIDB();
         }
@@ -1566,11 +1718,13 @@ async function loadState(){
             exportSeqMap = configData.exportSeq || {};
             colVis = configData.colVis || {};
             issueRecords = Array.isArray(configData.issueRecords) ? configData.issueRecords : [];
+            installRecords = Array.isArray(configData.installRecords) ? configData.installRecords : [];
             if (configData.operator) document.getElementById("operatorInput").value = configData.operator;
         } else {
             exportSeqMap = safeJson(lsGet(STORAGE_EXPORT_SEQ,"{}"))||{};
             colVis = safeJson(lsGet(STORAGE_COL_VIS,"{}"))||{};
             issueRecords = safeJson(lsGet(STORAGE_ISSUES,"[]"))||issueRecords;
+            installRecords = safeJson(lsGet(STORAGE_INSTALLS,"[]"))||installRecords;
             const op = lsGet(STORAGE_OPERATOR,"");
             if(op) document.getElementById("operatorInput").value = op;
         }
@@ -1578,7 +1732,7 @@ async function loadState(){
         if(!rows.length){rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid())}
     }catch(e){
         console.error('加载数据失败:', e);
-        rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];exportSeqMap={};borrowRecords=[];repairRecords=[];inventoryRecords=[];transferRecords=[]
+        rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];exportSeqMap={};borrowRecords=[];repairRecords=[];inventoryRecords=[];transferRecords=[];issueRecords=[];installRecords=[]
     }
     migrateAll();ensureUniqueIds();sortRows();
 }
@@ -1590,9 +1744,11 @@ async function saveState(){
             exportSeq: exportSeqMap,
             colVis: colVis,
             issueRecords,
+            installRecords,
             draft: {
                 rows, trash, logs: logs.slice(0,50),
                 snapshots: snapshots.slice(0,3),
+                issueRecords, installRecords,
                 safeRemoteVersion,
                 updatedAt: new Date().toISOString(),
                 updatedBy: getOp()
@@ -1616,7 +1772,7 @@ async function saveState(){
         console.error('保存到 IndexedDB 失败，回退到 localStorage:', e);
         // 回退到 localStorage
         try{
-            const ok=lsSet(STORAGE_KEY,JSON.stringify(rows))&&lsSet(STORAGE_TRASH,JSON.stringify(trash))&&lsSet(STORAGE_LOGS,JSON.stringify(logs))&&lsSet(STORAGE_OPERATOR,getOp())&&lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap))&&lsSet(STORAGE_COL_VIS,JSON.stringify(colVis))&&lsSet(STORAGE_BORROWS,JSON.stringify(borrowRecords))&&lsSet(STORAGE_REPAIRS,JSON.stringify(repairRecords))&&lsSet(STORAGE_INVENTORY,JSON.stringify(inventoryRecords))&&lsSet(STORAGE_TRANSFERS,JSON.stringify(transferRecords))&&lsSet(STORAGE_ISSUES,JSON.stringify(issueRecords));
+            const ok=lsSet(STORAGE_KEY,JSON.stringify(rows))&&lsSet(STORAGE_TRASH,JSON.stringify(trash))&&lsSet(STORAGE_LOGS,JSON.stringify(logs))&&lsSet(STORAGE_OPERATOR,getOp())&&lsSet(STORAGE_EXPORT_SEQ,JSON.stringify(exportSeqMap))&&lsSet(STORAGE_COL_VIS,JSON.stringify(colVis))&&lsSet(STORAGE_BORROWS,JSON.stringify(borrowRecords))&&lsSet(STORAGE_REPAIRS,JSON.stringify(repairRecords))&&lsSet(STORAGE_INVENTORY,JSON.stringify(inventoryRecords))&&lsSet(STORAGE_TRANSFERS,JSON.stringify(transferRecords))&&lsSet(STORAGE_ISSUES,JSON.stringify(issueRecords))&&lsSet(STORAGE_INSTALLS,JSON.stringify(installRecords));
             lsSet(STORAGE_SNAPSHOTS,JSON.stringify(snapshots));
             return ok;
         }catch(e2){setSyncInfo("保存失败："+e2.message);return false}
@@ -1643,7 +1799,7 @@ function addLog(action,row,note="",diffObj=null){
     if(logs.length>MAX_LOGS_KEEP)logs=logs.slice(0,MAX_LOGS_KEEP);
 }
 function pushSnapshot(src="自动保存",nt="自动保存"){
-    snapshots.unshift({version:(snapshots[0]?.version||0)+1,time:new Date().toLocaleString(),updatedBy:getOp(),source:src,note:nt,rows:clone(rows),trash:clone(trash),logs:clone(logs)});
+    snapshots.unshift({version:(snapshots[0]?.version||0)+1,time:new Date().toLocaleString(),updatedBy:getOp(),source:src,note:nt,rows:clone(rows),trash:clone(trash),logs:clone(logs),issueRecords:clone(issueRecords),installRecords:clone(installRecords)});
     if(snapshots.length>MAX_SNAPSHOTS_KEEP)snapshots=snapshots.slice(0,MAX_SNAPSHOTS_KEEP);
 }
 
@@ -1656,7 +1812,7 @@ function getFiltered(){
     const mf=document.getElementById("mainCategoryFilter").value;
     const subf=document.getElementById("subCategoryFilter").value;
     let result=rows.filter(r=>{
-        if(kw&&![r.id,r.source,r.assetMainName,r.assetSubName,r.brand,r.model,r.spec,r.sn,r.check,r.status,r.location,r.date,r.owner,r.note].some(v=>(v||"").toString().toLowerCase().includes(kw)))return false;
+        if(kw&&![r.id,r.source,r.assetMainName,r.assetSubName,r.brand,r.model,r.spec,specSummary(r),r.sn,r.check,r.status,r.location,r.date,r.owner,r.note].some(v=>(v||"").toString().toLowerCase().includes(kw)))return false;
         if(sf&&r.status!==sf)return false;
         if(mf&&r.assetMainCode!==mf)return false;
         if(subf&&r.assetSubCode!==subf)return false;
@@ -1828,7 +1984,7 @@ getFiltered = function() {
     return result.filter(r => {
         if (brand && !(r.brand || '').toLowerCase().includes(brand)) return false;
         if (model && !(r.model || '').toLowerCase().includes(model)) return false;
-        if (spec && !(r.spec || '').toLowerCase().includes(spec)) return false;
+        if (spec && !(`${r.spec||''} ${specSummary(r)}`).toLowerCase().includes(spec)) return false;
         if (sn && (r.sn || '').trim() !== sn) return false;
         if (location && !(r.location || '').toLowerCase().includes(location)) return false;
         if (owner && !(r.owner || '').toLowerCase().includes(owner)) return false;
@@ -1850,7 +2006,7 @@ function openIssueForSelection(){if(selectedSet.size!==1){toast("请先在台账
 function openIssueModal(uidValue){
     const row=rows.find(r=>r.uid===uidValue);if(!row)return;
     const available=availableQty(row);if(available<1){toast("该资产当前没有可领用数量","warn");return}
-    document.getElementById("issueAssetHint").innerHTML=`<b>${esc(row.id)}</b> · ${esc([row.assetSubName,row.brand,row.model,memorySummary(row)||row.spec].filter(Boolean).join(" / "))}<br><span class="small">${isBatch(row)?`批次库存：可领 ${available} / 总计 ${totalQty(row)}`:"单件资产：可领 1 件"}</span>`;
+    document.getElementById("issueAssetHint").innerHTML=`<b>${esc(row.id)}</b> · ${esc([row.assetSubName,row.brand,row.model,specSummary(row)].filter(Boolean).join(" / "))}<br><span class="small">${isBatch(row)?`批次库存：可领 ${available} / 总计 ${totalQty(row)}`:"单件资产：可领 1 件"}</span>`;
     document.getElementById("issueFormGrid").innerHTML=`<label>领用单号 <input id="issueId" value="${generateIssueId()}" readonly /></label><label>领用数量 <input id="issueQty" type="number" min="1" max="${available}" value="1" /></label><label>领用人 <input id="issueRecipient" value="${esc(getOp()==="系统"?"":getOp())}" placeholder="填写领用人" /></label><label>领用部门 <input id="issueDepartment" placeholder="可留空" /></label><label>领用日期 <input id="issueDate" type="date" value="${new Date().toISOString().slice(0,10)}" /></label><label>用途 <input id="issuePurpose" placeholder="领用用途" /></label><label style="grid-column:1 / -1;">备注 <textarea id="issueNote" rows="2" placeholder="可留空"></textarea></label><input id="issueAssetUid" type="hidden" value="${esc(uidValue)}" />`;
     document.getElementById("issueMask").style.display="flex";
 }
@@ -1862,6 +2018,65 @@ function saveIssue(){
     if(isBatch(row)){row.availableQty=String(available-qty);if(available-qty===0)row.status="已领用"}else{row.status="已领用";row.owner=recipient}
     const record={id:document.getElementById("issueId").value,assetId:row.id,qty,recipient,department:document.getElementById("issueDepartment").value.trim(),issueDate:date,purpose:document.getElementById("issuePurpose").value.trim(),note:document.getElementById("issueNote").value.trim(),status:"已领用"};
     issueRecords.unshift(record);addLog("领用",row,`${recipient} 领用 ${qty} 件（${record.id}）`);pushSnapshot("领用",`${row.id} 领用 ${qty} 件`);saveState();closeModal("issueMask");clearSel();renderAll();toast(`领用成功：${row.id} × ${qty}`,"success");
+}
+function renderIssueRecords(){
+    const body=document.getElementById("issueBody");if(!body)return;
+    if(!issueRecords.length){body.innerHTML=`<tr><td colspan="9" style="padding:16px;text-align:center;color:var(--muted);">暂无领用记录</td></tr>`;return}
+    body.innerHTML=issueRecords.map(x=>`<tr><td>${esc(x.id||"")}</td><td><b>${esc(x.assetId||"")}</b></td><td>${esc(x.qty||1)}</td><td>${esc(x.recipient||"")}</td><td>${esc(x.department||"")}</td><td>${esc(x.issueDate||x.date||"")}</td><td>${esc(x.purpose||"")}</td><td>${esc(x.note||"")}</td><td><span class="status-tag s-use">${esc(x.status||"已领用")}</span></td></tr>`).join("");
+}
+
+/* ================================================================
+   MACHINE / COMPONENT ASSOCIATION
+   ================================================================ */
+const isMachine = row => !!row&&row.assetMainCode==="SYSTEM_UNIT";
+function generateInstallId(){const d=todayYmd(),n=installRecords.filter(x=>x.id?.startsWith(`IN-${d}`)).length+1;return `IN-${d}-${String(n).padStart(3,"0")}`}
+function openMachineConfig(uidValue){
+    const machine=rows.find(r=>r.uid===uidValue);if(!isMachine(machine)){toast("请选择一条整机资产","warn");return}
+    document.getElementById("machineConfigMask").dataset.machineUid=uidValue;
+    document.getElementById("openInstallBtn").onclick=()=>openInstallModal(uidValue);
+    document.getElementById("machineConfigMask").style.display="flex";renderMachineConfig(machine);
+}
+function renderMachineConfig(machine){
+    const current=installRecords.filter(x=>x.machineAssetId===machine.id&&x.status==="已装机"),history=installRecords.filter(x=>x.machineAssetId===machine.id);
+    document.getElementById("machineConfigTitle").textContent=`${machine.id} · ${[machine.brand,machine.model,specSummary(machine)].filter(Boolean).join(" / ")}`;
+    document.getElementById("machineConfigSummary").innerHTML=`<span class="record-chip">当前配件 ${current.reduce((n,x)=>n+(parseInt(x.qty,10)||1),0)} 件</span><span class="record-chip">关联记录 ${history.length} 条</span><span class="record-chip">责任人 ${esc(machine.owner||"未填写")}</span><span class="record-chip">位置 ${esc(machine.location||"未填写")}</span>`;
+    const grid=document.getElementById("machineCurrentConfig");
+    grid.innerHTML=current.length?current.map(x=>`<div class="config-card"><div><b>${esc(x.componentAssetId)}</b> · ${esc(x.componentName||"配件")}</div><div class="small">${esc(x.componentSpec||"")} · 数量 ${esc(x.qty||1)} · ${esc(x.slot||"未填安装位置")}</div><div class="small">${esc(x.installDate||"")} / ${esc(x.installer||"未填安装人")}</div><div class="row-actions"><button class="mini-btn btn-soft" onclick="uninstallComponent('${x.id}','在库')">拆回在库</button><button class="mini-btn btn-orange" onclick="uninstallComponent('${x.id}','待检测')">拆下待检</button></div></div>`).join(""):`<div class="hint" style="grid-column:1 / -1;">这台整机还没有关联配件，点击“装配件”开始登记。</div>`;
+    document.getElementById("machineConfigHistory").innerHTML=history.length?history.map(x=>`<div class="history-item"><b>${esc(x.status||"")}</b> · ${esc(x.componentAssetId)} ${esc(x.componentName||"")} × ${esc(x.qty||1)}<div class="small">装机 ${esc(x.installDate||"")}${x.uninstallDate?`；拆机 ${esc(x.uninstallDate)}`:""} · ${esc(x.slot||"未填位置")} · ${esc(x.installer||"")}${x.disposition?` · 去向：${esc(x.disposition)}`:""}${x.note?` · ${esc(x.note)}`:""}</div></div>`).join(""):`<div class="small">暂无配置历史</div>`;
+}
+function openInstallModal(machineUid){
+    const machine=rows.find(r=>r.uid===machineUid);if(!isMachine(machine))return;
+    const candidates=rows.filter(r=>!isMachine(r)&&availableQty(r)>0&&(isBatch(r)||r.status==="在库"));
+    if(!candidates.length){toast("当前没有可用的配件库存","warn");return}
+    document.getElementById("installMachineHint").innerHTML=`装入整机：<b>${esc(machine.id)}</b> · ${esc([machine.brand,machine.model].filter(Boolean).join(" "))}`;
+    document.getElementById("installFormGrid").innerHTML=`<input id="installMachineUid" type="hidden" value="${esc(machineUid)}" /><label>装机单号 <input id="installId" value="${generateInstallId()}" readonly /></label><label>配件 <select id="installComponentUid" onchange="updateInstallAvailability()">${candidates.map(r=>`<option value="${r.uid}">${esc(r.id)} · ${esc(r.assetSubName)} · ${esc([r.brand,r.model,specSummary(r)].filter(Boolean).join(" / "))}</option>`).join("")}</select></label><label>数量 <input id="installQty" type="number" min="1" value="1" /></label><label>槽位 / 安装位置 <input id="installSlot" placeholder="如：DIMM_A1、硬盘位 1" /></label><label>装机日期 <input id="installDate" type="date" value="${new Date().toISOString().slice(0,10)}" /></label><label>安装人 <input id="installInstaller" value="${esc(getOp()==="系统"?"":getOp())}" /></label><label style="grid-column:1 / -1;">备注 <textarea id="installNote" rows="2" placeholder="可记录用途、更换原因等"></textarea></label><div id="installAvailability" class="hint" style="grid-column:1 / -1;"></div>`;
+    document.getElementById("installMask").style.display="flex";updateInstallAvailability();setTimeout(()=>makeCustomSelects(document.getElementById("installFormGrid")),10);
+}
+function updateInstallAvailability(){
+    const row=rows.find(r=>r.uid===document.getElementById("installComponentUid")?.value),el=document.getElementById("installAvailability"),qty=document.getElementById("installQty");if(!row||!el||!qty)return;
+    const available=availableQty(row);qty.max=String(available);if(parseInt(qty.value,10)>available)qty.value=String(available);
+    el.innerHTML=`可装数量：<b>${available}</b> / 总计 ${totalQty(row)}；当前已装 ${installedQty(row)}，已领 ${issuedQty(row)}。${isBatch(row)?"该条是无序列号批次，装机后自动扣减库存。":"该条有独立编号，装机后状态改为“已装机”。"}`;
+}
+function saveInstall(){
+    const machine=rows.find(r=>r.uid===document.getElementById("installMachineUid")?.value),component=rows.find(r=>r.uid===document.getElementById("installComponentUid")?.value);if(!machine||!component)return;
+    const qty=Math.max(1,parseInt(document.getElementById("installQty")?.value||"1",10)),available=availableQty(component),date=document.getElementById("installDate")?.value||"";
+    if(qty>available){toast(`可装数量只有 ${available} 件`,"warn");return}if(!date){toast("请填写装机日期","warn");return}
+    const record={id:document.getElementById("installId").value,machineAssetId:machine.id,componentAssetId:component.id,componentName:component.assetSubName,componentSpec:specSummary(component),qty,slot:document.getElementById("installSlot").value.trim(),installDate:date,installer:document.getElementById("installInstaller").value.trim(),note:document.getElementById("installNote").value.trim(),status:"已装机",uninstallDate:"",disposition:""};
+    if(isBatch(component)){component.availableQty=String(available-qty);if(available-qty===0)component.status="已装机"}else component.status="已装机";
+    installRecords.unshift(record);addLog("装机领用",component,`${qty} 件装入整机 ${machine.id}（${record.id}）`);addLog("配置变更",machine,`装入 ${component.id} × ${qty}`);pushSnapshot("装机领用",`${component.id} × ${qty} → ${machine.id}`);saveState();closeModal("installMask");renderMachineConfig(machine);renderAll();toast(`已关联：${component.id} → ${machine.id}`,"success");
+}
+function uninstallComponent(recordId,disposition){
+    const record=installRecords.find(x=>x.id===recordId&&x.status==="已装机");if(!record)return;
+    const component=rows.find(r=>r.id===record.componentAssetId),machine=rows.find(r=>r.id===record.machineAssetId);if(!component)return;
+    if(!confirm(`确认将 ${record.componentAssetId} × ${record.qty||1} 从 ${record.machineAssetId} 拆下，并设为“${disposition}”吗？`))return;
+    record.status=disposition==="在库"?"已拆机入库":"已拆机待检";record.uninstallDate=new Date().toISOString().slice(0,10);record.disposition=disposition;
+    if(isBatch(component)){if(disposition==="在库")component.availableQty=String(Math.min(totalQty(component),availableQty(component)+(parseInt(record.qty,10)||1)));component.status=disposition}else component.status=disposition;
+    addLog("拆机",component,`从整机 ${record.machineAssetId} 拆下，去向：${disposition}`);if(machine)addLog("配置变更",machine,`拆下 ${component.id} × ${record.qty||1}`);pushSnapshot("拆机",`${component.id} ← ${record.machineAssetId}（${disposition}）`);saveState();if(machine)renderMachineConfig(machine);renderAll();toast(`已拆下并设为${disposition}`,"success");
+}
+function renderInstallRecords(){
+    const body=document.getElementById("installBody");if(!body)return;
+    if(!installRecords.length){body.innerHTML=`<tr><td colspan="11" style="padding:16px;text-align:center;color:var(--muted);">暂无装机记录</td></tr>`;return}
+    body.innerHTML=installRecords.map(x=>`<tr><td>${esc(x.id||"")}</td><td><b>${esc(x.machineAssetId||"")}</b></td><td><b>${esc(x.componentAssetId||"")}</b><div class="small">${esc(x.componentName||"")}</div></td><td>${esc(x.componentSpec||"")}</td><td>${esc(x.qty||1)}</td><td>${esc(x.slot||"")}</td><td>${esc(x.installDate||"")}</td><td>${esc(x.installer||"")}</td><td><span class="status-tag ${x.status==="已装机"?"s-use":"s-wait"}">${esc(x.status||"")}</span></td><td>${esc(x.uninstallDate||"")}${x.disposition?`<div class="small">${esc(x.disposition)}</div>`:""}</td><td>${esc(x.note||"")}</td></tr>`).join("");
 }
 function useSimpleView(){const visible=["id","assetMainCode","assetSubCode","brand","model","spec","availableQty","status","location"];colVis={};COLUMNS.forEach(c=>colVis[c.key]=visible.includes(c.key));lsSet(STORAGE_COL_VIS,JSON.stringify(colVis));renderTable();toast("已切换为简洁视图；可在“列设置”恢复或调整字段","success")}
 
@@ -2371,9 +2586,8 @@ function renderCell(r,col){
     case"mainCat": return `<td><select class="select-cell" onchange="updateMainCat('${r.uid}',this.value)">${renderMainOpts(r.assetMainCode)}</select></td>`;
     case"subCat": return `<td><select class="select-cell" onchange="updateSubCat('${r.uid}',this.value)">${renderSubOpts(r.assetMainCode,r.assetSubCode)}</select></td>`;
     case"status": return `<td><div style="padding:6px 8px;display:flex;flex-direction:column;gap:6px;"><span class="status-tag ${statusCls(r.status)}">${esc(displayStatus(r))}</span>${isBatch(r)?'<span class="small">批次库存</span>':`<select class="select-cell" onchange="updateField('${r.uid}','${col.key}',this.value)">${selOpts(STATUS_OPTIONS,r.status)}</select>`}</div></td>`;
-    case"stock": return `<td><div class="stock-summary"><span>可用 ${availableQty(r)}</span><span class="out">已领 ${issuedQty(r)}</span><span class="total">总计 ${totalQty(r)}</span></div></td>`;
-    case"memory": return `<td>${esc(r.memoryStandard||"—")}</td>`;
-    case"assetSpec": return r.assetSubCode==="MEMORY"&&memorySummary(r)?`<td><div style="padding:8px;font-weight:700;font-size:12px;">${esc(memorySummary(r))}</div></td>`:`<td><input class="cell" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
+    case"stock": return `<td><div class="stock-summary"><span>可用 ${availableQty(r)}</span><span class="out">已领 ${issuedQty(r)}</span><span class="install">已装 ${installedQty(r)}</span>${pendingCheckQty(r)?`<span class="pending">待检 ${pendingCheckQty(r)}</span>`:""}<span class="total">总计 ${totalQty(r)}</span></div></td>`;
+    case"assetSpec": return `<td><div style="padding:8px;font-weight:700;font-size:12px;white-space:normal;line-height:1.45;" title="${esc(r.spec?`原始规格：${r.spec}`:"点击编辑资产维护结构化规格")}">${esc(specSummary(r)||"—")}</div></td>`;
     case"number": return `<td><input class="cell" type="number" min="1" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
     case"date": return `<td><input class="cell" type="date" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
     default: return `<td><input class="cell" value="${esc(v)}" onchange="updateField('${r.uid}','${col.key}',this.value)" /></td>`;
@@ -2447,8 +2661,8 @@ function selectionBar(){
     const bar=document.getElementById("bulkBar"),title=document.getElementById("bulkBarTitle"),act=document.getElementById("bulkBarActions");
     const cnt=selectedSet.size;if(!cnt){bar.style.display="none";return}
     bar.style.display="block";document.getElementById("selectedCount").textContent=cnt;
-    const uid0=[...selectedSet][0];
-    if(cnt===1){title.textContent="操作";act.innerHTML=`<button class="btn-primary" onclick="openIssueModal('${uid0}')">⚡ 领用</button><button class="btn-purple" onclick="openRowModal('edit','${uid0}')">编辑</button><button class="btn-soft" onclick="dupRow('${uid0}')">复制</button><button class="btn-orange" onclick="trashRowWithUndo('${uid0}')">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
+    const uid0=[...selectedSet][0],selectedRow=rows.find(r=>r.uid===uid0);
+    if(cnt===1){title.textContent="操作";act.innerHTML=`<button class="btn-primary" onclick="openIssueModal('${uid0}')">⚡ 领用</button>${isMachine(selectedRow)?`<button class="btn-green" onclick="openMachineConfig('${uid0}')">🖥 整机配置</button>`:""}<button class="btn-purple" onclick="openRowModal('edit','${uid0}')">编辑</button><button class="btn-soft" onclick="dupRow('${uid0}')">复制</button><button class="btn-orange" onclick="trashRowWithUndo('${uid0}')">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
     else{title.textContent="多选批量操作";act.innerHTML=`<button class="btn-purple" onclick="openBulkEditModal()">批量修改</button><button class="btn-green" onclick="batchSetStatus('在库')">改：在库</button><button class="btn-orange" onclick="batchSetStatus('已领用')">改：已领用</button><button class="btn-orange" onclick="moveSelToTrash()">移入回收站</button><button class="btn-cancel" onclick="clearSel()">取消选择</button>`}
 }
 
@@ -2553,18 +2767,39 @@ function moveSelToTrash(){
    ================================================================ */
 function buildRowFormGrid(){
     return ROW_FORM_FIELDS.map(([elId,key,label,type,opts])=>{
-        if(type==="mainCat") return `<label>${label} <select id="${elId}" onchange="syncRowSubOpts();toggleMemoryFields();updateSuggestedAssetId();markDirty()"></select></label>`;
-        if(type==="subCat") return `<label>${label} <select id="${elId}" onchange="updateSuggestedAssetId();toggleMemoryFields();markDirty()"></select></label>`;
+        if(type==="mainCat") return `<label>${label} <select id="${elId}" onchange="syncRowSubOpts();renderStructuredSpecEditor();updateSuggestedAssetId();markDirty()"></select></label>`;
+        if(type==="subCat") return `<label>${label} <select id="${elId}" onchange="renderStructuredSpecEditor();updateSuggestedAssetId();markDirty()"></select></label>`;
         if(type==="select") return `<label>${label} <select id="${elId}" onchange="markDirty()">${selOpts(opts,opts[0])}</select></label>`;
         if(type==="textarea") return `<label style="grid-column:1 / -1;">${label} <textarea id="${elId}" rows="3" oninput="markDirty()"></textarea></label>`;
         if(type==="number") return `<label>${label} <input id="${elId}" type="number" min="1" value="1" oninput="markDirty()" /></label>`;
         if(type==="date") return `<label>${label} <input id="${elId}" type="date" oninput="updateSuggestedAssetId();markDirty()" /></label>`;
         const extra=key==="id"?' oninput="lastSuggestedId=\'\';checkDupIdLive(this);markDirty()"':' oninput="markDirty()"';
         return `<label>${label} <input id="${elId}" type="text"${extra} /></label>`;
-    }).join("")+`<div id="memoryFields" style="display:none;grid-column:1 / -1;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);"><div class="small" style="margin-bottom:8px;font-weight:800;">内存条固定规格（用于统一展示与 DDR3 → DDR5 排序）</div><div class="form-grid" style="grid-template-columns:repeat(4,1fr);"><label>内存代际 <select id="rowMemoryStandard" onchange="markDirty()"><option value="">请选择</option><option>DDR2</option><option>DDR3</option><option>DDR3L</option><option>DDR4</option><option>DDR5</option></select></label><label>容量 <select id="rowMemoryCapacity" onchange="markDirty()"><option value="">请选择</option><option>2GB</option><option>4GB</option><option>8GB</option><option>16GB</option><option>32GB</option><option>64GB</option><option>128GB</option></select></label><label>频率 <select id="rowMemorySpeed" onchange="markDirty()"><option value="">请选择</option><option>1333MHz</option><option>1600MHz</option><option>1866MHz</option><option>2133MHz</option><option>2400MHz</option><option>2666MHz</option><option>3200MHz</option><option>3600MHz</option><option>4800MHz</option><option>5600MHz</option></select></label><label>形态 <select id="rowMemoryForm" onchange="markDirty()"><option value="">请选择</option><option>UDIMM</option><option>SO-DIMM</option><option>RDIMM</option><option>ECC UDIMM</option></select></label></div></div>`;
+    }).join("")+`<div id="structuredSpecEditor" class="spec-editor" style="display:none;"></div><div id="rowAssociationHistory" class="history-box" style="display:none;"></div>`;
 }
 function markDirty(){formDirty=true}
-function toggleMemoryFields(){const box=document.getElementById("memoryFields"),sub=document.getElementById("rowSubCategory")?.value;if(box)box.style.display=sub==="MEMORY"?"block":"none"}
+function renderStructuredSpecEditor(sourceRow=null){
+    const box=document.getElementById("structuredSpecEditor");if(!box)return;
+    const sub=document.getElementById("rowSubCategory")?.value||"",tpl=SPEC_TEMPLATES[sub];
+    if(!tpl){box.style.display="none";box.innerHTML="";return}
+    const row=sourceRow||(editingUid?rows.find(r=>r.uid===editingUid):null),data=row&&row.assetSubCode===sub?inferSpecData(row):{};
+    box.style.display="block";
+    box.innerHTML=`<div class="spec-editor-head"><div><b>${esc(tpl.title)}</b><div class="small">选项只负责统一展示和排序；上方原始规格会原样保留。</div></div><span class="record-chip">${esc(getSub(document.getElementById("rowMainCategory")?.value||defMainCode(),sub).name)}</span></div><div class="spec-editor-grid">${tpl.fields.map(f=>`<label>${esc(f.label)} <select id="specField_${f.key}" onchange="markDirty()"><option value="">未选择</option>${f.options.map(v=>`<option value="${esc(v)}" ${data[f.key]===v?"selected":""}>${esc(v)}</option>`).join("")}</select></label>`).join("")}</div>`;
+    setTimeout(()=>makeCustomSelects(box),10);
+}
+function collectStructuredSpecData(){
+    const sub=document.getElementById("rowSubCategory")?.value||"",tpl=SPEC_TEMPLATES[sub];if(!tpl)return{};
+    const out={};tpl.fields.forEach(f=>{const v=document.getElementById(`specField_${f.key}`)?.value||"";if(v)out[f.key]=v});return out;
+}
+function renderRowAssociationHistory(row){
+    const box=document.getElementById("rowAssociationHistory");if(!box||!row){if(box)box.style.display="none";return}
+    const issues=issueRecords.filter(x=>x.assetId===row.id),installs=installRecords.filter(x=>x.machineAssetId===row.id||x.componentAssetId===row.id);
+    if(!issues.length&&!installs.length){box.style.display="none";box.innerHTML="";return}
+    box.style.display="block";
+    const issueHtml=issues.slice().reverse().map(x=>`<div class="history-item"><b>领用 ${esc(x.qty)}</b> · ${esc(x.recipient||"未填领用人")} · ${esc(x.department||"未填部门")} · ${esc(x.issueDate||x.date||"")}<div class="small">${esc(x.purpose||"")}${x.note?`；${esc(x.note)}`:""}</div></div>`).join("");
+    const installHtml=installs.slice().reverse().map(x=>`<div class="history-item"><b>${esc(x.status||"装机")}</b> · ${row.id===x.machineAssetId?`配件 ${esc(x.componentAssetId)}`:`整机 ${esc(x.machineAssetId)}`} · ${esc(x.qty)} 件 · ${esc(x.installDate||"")}<div class="small">${esc(x.slot||"未填位置")} ${x.note?`；${esc(x.note)}`:""}</div></div>`).join("");
+    box.innerHTML=`<b>该资产的领用 / 装机历史</b><div class="history-list">${issueHtml}${installHtml}</div>`;
+}
 /* ── Unified subcategory sync ── */
 function syncSubSelect(mainId, subId, keepVal=true){
     const mc=document.getElementById(mainId)?.value||defMainCode();
@@ -2599,8 +2834,8 @@ function openRowModal(mode="add",uidValue=null){
         else if(type==="select"){el.value=row?row[key]||"":""}
         else{el.value=row?.[key]??(key==="qty"?"1":(mode==="add"&&key==="date"?new Date().toISOString().slice(0,10):""))}
     });
-    ["memoryStandard","memoryCapacity","memorySpeed","memoryForm"].forEach(key=>{const el=document.getElementById("row"+key[0].toUpperCase()+key.slice(1));if(el)el.value=row?.[key]||""});
-    toggleMemoryFields();
+    renderStructuredSpecEditor(row);
+    renderRowAssociationHistory(row);
     lastSuggestedId="";if(mode==="add")updateSuggestedAssetId();
 }
 /* ── Unified modal close ── */
@@ -2615,8 +2850,8 @@ function saveRowModal(){
     let committed=false;
     try{
         const data={};ROW_FORM_FIELDS.forEach(([elId,key])=>{const el=document.getElementById(elId);data[key]=el?el.value.trim():""});
-        data.memoryStandard=document.getElementById("rowMemoryStandard")?.value||"";data.memoryCapacity=document.getElementById("rowMemoryCapacity")?.value||"";data.memorySpeed=document.getElementById("rowMemorySpeed")?.value||"";data.memoryForm=document.getElementById("rowMemoryForm")?.value||"";
-        const hasSn=!!(data.sn&&data.sn!=="无");data.inventoryMode=(!hasSn&&parseInt(data.qty||"1",10)>1)?"batch":"single";data.availableQty=data.inventoryMode==="batch"?data.qty:"1";
+        data.specData=collectStructuredSpecData();
+        const hasSn=!!(data.sn&&data.sn!=="无");data.inventoryMode=(!hasSn&&parseInt(data.qty||"1",10)>1)?"batch":"single";
 
         // 数据校验
         const errors = validateRow(data);
@@ -2627,6 +2862,7 @@ function saveRowModal(){
         }
 
         if(modalMode==="add"){
+            data.availableQty=data.inventoryMode==="batch"?data.qty:"1";
             if(isDupId(data.id)){data.id=nextNo(data.assetMainCode,data.assetSubCode,data.date);document.getElementById("rowId").value=data.id}
             const main=getCat(data.assetMainCode||defMainCode()),sub=getSub(main.code,data.assetSubCode||defSubCode(main.code));
             const row={uid:uid(),...data,assetMainName:main.name,assetSubName:sub.name,source:"",type:"",machineClass:""};
@@ -2635,7 +2871,7 @@ function saveRowModal(){
             const row=rows.find(r=>r.uid===editingUid);if(!row)return;
             if(isDupId(data.id,row.uid)){alert(`编号 ${data.id} 已存在`);return}
             const main=getCat(data.assetMainCode||defMainCode()),sub=getSub(main.code,data.assetSubCode||defSubCode(main.code));
-            const keepAvailable=isBatch(row)?availableQty(row):null;Object.assign(row,data,{assetMainName:main.name,assetSubName:sub.name});if(row.inventoryMode==="batch")row.availableQty=String(Math.min(parseInt(row.qty,10)||1,keepAvailable??(parseInt(row.qty,10)||1)));
+            const keepAvailable=availableQty(row);Object.assign(row,data,{assetMainName:main.name,assetSubName:sub.name});row.availableQty=String(Math.min(parseInt(row.qty,10)||1,keepAvailable));
             addLog("修改",row);sortRows();committed=true;
         }
         saveState();formDirty=false;
@@ -2741,7 +2977,7 @@ function emptyTrash(){if(!trash.length){alert("回收站已空");return}if(!conf
    ================================================================ */
 function loadLocalDraft(){
     try{const draft=safeJson(lsGet(STORAGE_DRAFT,""));if(!draft){alert("没有可恢复的草稿");return}
-        rows=normRows(draft.rows||[]);trash=normTrash(draft.trash||[]);logs=normLogs(draft.logs||[]);snapshots=normSnaps(draft.snapshots||[]);safeRemoteVersion=draft.safeRemoteVersion||0;
+        rows=normRows(draft.rows||[]);trash=normTrash(draft.trash||[]);logs=normLogs(draft.logs||[]);snapshots=normSnaps(draft.snapshots||[]);issueRecords=Array.isArray(draft.issueRecords)?draft.issueRecords:issueRecords;installRecords=Array.isArray(draft.installRecords)?draft.installRecords:installRecords;safeRemoteVersion=draft.safeRemoteVersion||0;
         migrateAll();ensureUniqueIds();sortRows();saveState();renderAll();alert("草稿已恢复")}catch(e){alert("恢复失败："+e.message)}
 }
 function rollbackSnapshot(idx){const snap=snapshots[idx];if(!snap)return;if(!confirm(`回滚到 v${snap.version||idx+1}？当前数据将被覆盖。`))return;
@@ -2749,7 +2985,7 @@ function rollbackSnapshot(idx){const snap=snapshots[idx];if(!snap)return;if(!con
     // 回滚前先保存当前状态作为备份
     pushSnapshot("回滚前备份", `回滚到 v${snap.version||idx+1}前自动备份`);
 
-    rows=normRows(clone(snap.rows||[]));trash=normTrash(clone(snap.trash||[]));logs=normLogs(clone(snap.logs||[]));migrateAll();ensureUniqueIds();sortRows();pushSnapshot("回滚快照",`回滚到 v${snap.version||idx+1}`);saveState();renderAll()}
+    rows=normRows(clone(snap.rows||[]));trash=normTrash(clone(snap.trash||[]));logs=normLogs(clone(snap.logs||[]));if(Array.isArray(snap.issueRecords))issueRecords=clone(snap.issueRecords);if(Array.isArray(snap.installRecords))installRecords=clone(snap.installRecords);migrateAll();ensureUniqueIds();sortRows();pushSnapshot("回滚快照",`回滚到 v${snap.version||idx+1}`);saveState();renderAll()}
 function refreshSafeHistory(){renderSafeHistory()}
 
 /* ================================================================
@@ -2757,7 +2993,7 @@ function refreshSafeHistory(){renderSafeHistory()}
    ================================================================ */
 function openLabelPrint(){
     const filtered=sorted(getFiltered());
-    document.getElementById("labelContainer").innerHTML=filtered.map(r=>`<div class="label-card"><div class="label-top"><div><div class="label-id">${esc(r.id)}</div><div class="label-meta">${esc(r.assetMainName)} / ${esc(r.assetSubName)}</div></div><div class="status-tag ${statusCls(r.status)}">${esc(r.status||"待检测")}</div></div><div class="label-body"><div class="label-meta">品牌：${esc(r.brand||"—")} | 型号：${esc(r.model||"—")}</div><div class="label-meta">规格：${esc(r.spec||"—")} | 数量：${esc(r.qty||"1")}</div><div class="label-meta">序列号：${esc(r.sn||"—")}</div></div><div class="label-foot">存放位置：${esc(r.location||"—")}<br/>责任人：${esc(r.owner||"—")}<br/>备注：${esc(r.note||"—")}</div></div>`).join("")||'<div class="small">当前没有可打印的记录。</div>';
+    document.getElementById("labelContainer").innerHTML=filtered.map(r=>`<div class="label-card"><div class="label-top"><div><div class="label-id">${esc(r.id)}</div><div class="label-meta">${esc(r.assetMainName)} / ${esc(r.assetSubName)}</div></div><div class="status-tag ${statusCls(r.status)}">${esc(r.status||"待检测")}</div></div><div class="label-body"><div class="label-meta">品牌：${esc(r.brand||"—")} | 型号：${esc(r.model||"—")}</div><div class="label-meta">规格：${esc(specSummary(r)||"—")} | 数量：${esc(r.qty||"1")}</div><div class="label-meta">序列号：${esc(r.sn||"—")}</div></div><div class="label-foot">存放位置：${esc(r.location||"—")}<br/>责任人：${esc(r.owner||"—")}<br/>备注：${esc(r.note||"—")}</div></div>`).join("")||'<div class="small">当前没有可打印的记录。</div>';
     document.body.classList.add("label-print-mode");document.getElementById("labelMask").style.display="flex";
 }
 function closeLabelPrint(){document.body.classList.remove("label-print-mode");document.getElementById("labelMask").style.display="none"}
@@ -2775,7 +3011,7 @@ function printInboundReceipt(){
     document.getElementById("receiptModalHint").textContent="请先在资产台账左侧勾选条目；可在下方表单中补充来源和签字信息。";
     const d=todayYmd(),seq=parseInt(lsGet("asset_receipt_preview_seq_"+d,"0"),10)+1;
     const receiptNo=`RK-${d}-${String(seq).padStart(3,"0")}`;
-    const itemRows=list.map((r,i)=>`<tr data-qty="${esc(r.qty||"1")}"><td>${i+1}</td><td>${esc(r.id)}</td><td class="left"><b>${esc(r.assetSubName||r.assetMainName)}</b></td><td class="left"><span style="font-size:10px">${esc([r.brand,r.model,r.spec].filter(Boolean).join(" ｜ ")||"—")}</span></td><td>${esc(r.qty||"1")} 台/件</td><td><input class="receipt-edit" value="${esc(r.note||"")}" placeholder="可留空" /></td></tr>`).join("");
+    const itemRows=list.map((r,i)=>`<tr data-qty="${esc(r.qty||"1")}"><td>${i+1}</td><td>${esc(r.id)}</td><td class="left"><b>${esc(r.assetSubName||r.assetMainName)}</b></td><td class="left"><span style="font-size:10px">${esc([r.brand,r.model,specSummary(r)].filter(Boolean).join(" ｜ ")||"—")}</span></td><td>${esc(r.qty||"1")} 台/件</td><td><input class="receipt-edit" value="${esc(r.note||"")}" placeholder="可留空" /></td></tr>`).join("");
     document.getElementById("receiptPreview").innerHTML=`<div class="receipt-tip no-print">已载入 <b>${list.length}</b> 条已勾选资产。此单用于资产管理入库登记，不会改动原台账。</div><section class="receipt-sheet"><input id="receiptCompany" class="receipt-edit receipt-company" value="${esc(lsGet("asset_receipt_company",""))}" placeholder="公司名称" /><h1 class="receipt-title">资产入库单</h1><div class="receipt-meta"><div>入库部门：<input id="receiptDept" class="receipt-edit" value="${DEFAULT_DEPARTMENT}" /></div><div class="right">入库日期：<input id="receiptDate" class="receipt-edit" type="date" value="${new Date().toISOString().slice(0,10)}" /></div><div class="right">单据编号：<input id="receiptNo" class="receipt-edit" value="${receiptNo}" /></div></div><div class="receipt-meta"><div>供应商/来源：<input id="receiptSupplier" class="receipt-edit" placeholder="填写供应商或资产来源" style="width:180px" /></div><div>采购/合同号：<input id="receiptContract" class="receipt-edit" placeholder="可留空" style="width:110px" /></div><div class="right">经办人：<input id="receiptHandler" class="receipt-edit" value="${esc(getOp()==="系统"?"":getOp())}" /></div></div><table class="receipt-table"><thead><tr><th style="width:5%">序号</th><th style="width:20%">资产编号</th><th style="width:17%">资产名称</th><th style="width:37%">品牌型号 / 配置</th><th style="width:10%">数量</th><th>备注</th></tr></thead><tbody>${itemRows}</tbody></table><div class="receipt-summary"><span>资产条目：<b id="receiptRecordTotal">${list.length}</b> 条</span><span>合计数量：<b id="receiptQtyTotal">0</b></span></div><div class="receipt-sign"><div>制单：<input id="receiptMaker" class="receipt-edit" value="${esc(getOp()==="系统"?"":getOp())}" /></div><div>验收人：<input id="receiptChecker" class="receipt-edit" /></div><div>保管人：<input id="receiptKeeper" class="receipt-edit" /></div><div>部门负责人：<input id="receiptLeader" class="receipt-edit" /></div></div><div class="receipt-foot">本单用于信息部资产入库登记与留存。</div></section>`;
     const headerMeta=document.getElementById("receiptDate")?.closest(".receipt-meta");
     if(headerMeta){headerMeta.classList.add("receipt-meta-two");document.getElementById("receiptDate").parentElement.remove()}
@@ -2790,7 +3026,7 @@ function printOutboundReceipt(){
     if(!list.length){toast("请先在资产台账最左侧勾选需要出库的条目，再打开出库单预览","warn");return}
     const d=todayYmd(),seq=parseInt(lsGet("asset_outbound_preview_seq_"+d,"0"),10)+1;
     const receiptNo=`CK-${d}-${String(seq).padStart(3,"0")}`;
-    const itemRows=list.map((r,i)=>`<tr data-qty="${esc(r.qty||"1")}"><td>${i+1}</td><td>${esc(r.id)}</td><td class="left"><b>${esc(r.assetSubName||r.assetMainName)}</b></td><td class="left"><span style="font-size:10px">${esc([r.brand,r.model,r.spec].filter(Boolean).join(" ｜ ")||"—")}</span></td><td>${esc(r.qty||"1")} 台/件</td><td>${esc(r.status||"在库")}</td><td><input class="receipt-edit outbound-purpose" placeholder="填写领用用途" /></td></tr>`).join("");
+    const itemRows=list.map((r,i)=>`<tr data-qty="${esc(r.qty||"1")}"><td>${i+1}</td><td>${esc(r.id)}</td><td class="left"><b>${esc(r.assetSubName||r.assetMainName)}</b></td><td class="left"><span style="font-size:10px">${esc([r.brand,r.model,specSummary(r)].filter(Boolean).join(" ｜ ")||"—")}</span></td><td>${esc(r.qty||"1")} 台/件</td><td>${esc(r.status||"在库")}</td><td><input class="receipt-edit outbound-purpose" placeholder="填写领用用途" /></td></tr>`).join("");
     document.getElementById("receiptModalTitle").textContent="资产出库单预览 · 紧凑版";
     document.getElementById("receiptModalHint").textContent="请核对已勾选资产，填写领用信息和用途；打印后由领用人签字确认。";
     document.getElementById("receiptPreview").innerHTML=`<div class="receipt-tip no-print">已载入 <b>${list.length}</b> 条已勾选资产。本单仅生成出库凭证，不会自动修改资产台账状态。</div><section class="receipt-sheet"><input id="receiptCompany" class="receipt-edit receipt-company" value="${esc(lsGet("asset_receipt_company",""))}" placeholder="公司名称" /><h1 class="receipt-title">资产出库单</h1><div class="receipt-meta"><div>出库部门：<input id="receiptDept" class="receipt-edit" value="${DEFAULT_DEPARTMENT}" /></div><div class="right">出库日期：<input id="outboundDate" class="receipt-edit" type="date" value="${new Date().toISOString().slice(0,10)}" /></div><div class="right">单据编号：<input id="receiptNo" class="receipt-edit" value="${receiptNo}" /></div></div><div class="receipt-meta"><div>领用部门：<input id="outboundDepartment" class="receipt-edit" placeholder="填写领用部门" /></div><div>领用人：<input id="outboundRecipient" class="receipt-edit" placeholder="填写领用人" /></div><div class="right">经办人：<input id="outboundHandler" class="receipt-edit" value="${esc(getOp()==="系统"?"":getOp())}" /></div></div><table class="receipt-table"><thead><tr><th>序号</th><th>资产编号</th><th>资产名称</th><th>品牌型号 / 配置</th><th>数量</th><th>当前状态</th><th>出库用途 / 备注</th></tr></thead><tbody>${itemRows}</tbody></table><div class="receipt-summary"><span>资产条目：<b>${list.length}</b> 条</span><span>合计数量：<b id="receiptQtyTotal">0</b></span></div><div class="receipt-sign"><div>制单：<input id="receiptMaker" class="receipt-edit" value="${esc(getOp()==="系统"?"":getOp())}" /></div><div>领用人签字：<input id="outboundRecipientSign" class="receipt-edit" /></div><div>保管人：<input id="receiptKeeper" class="receipt-edit" /></div><div>部门负责人：<input id="receiptLeader" class="receipt-edit" /></div></div><div class="receipt-foot">领用人签字后，本单作为资产出库与领用凭证留存。</div></section>`;
@@ -2830,8 +3066,8 @@ function downloadText(prefix,ext,content,mime,bom=false){
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
     addLog("导出",{id:"SYSTEM"},`下载：${fname}`);saveState();setSyncInfo(`已导出：${fname}`);
 }
-function rowsToCSV(list){return CSV_HEADERS.map(csvCell).join(",")+"\n"+list.map(r=>CSV_KEYS.map(k=>csvCell(r[k]||"")).join(",")).join("\n")}
-function exportAllJSON(){downloadText("ledger_all","json",JSON.stringify({rows:sorted(rows),trash,logs,snapshots,issueRecords},null,2),"application/json;charset=utf-8")}
+function rowsToCSV(list){return CSV_HEADERS.map(csvCell).join(",")+"\n"+list.map(r=>CSV_KEYS.map(k=>csvCell(k==="spec"?specSummary(r):(r[k]||""))).join(",")).join("\n")}
+function exportAllJSON(){downloadText("ledger_all","json",JSON.stringify({rows:sorted(rows),trash,logs,snapshots,issueRecords,installRecords},null,2),"application/json;charset=utf-8")}
 function exportAllCSV(){downloadText("ledger_all","csv",rowsToCSV(sorted(rows)),"text/csv;charset=utf-8",true)}
 function exportFilteredJSON(){downloadText("ledger_filtered","json",JSON.stringify({rows:sorted(getFiltered())},null,2),"application/json;charset=utf-8")}
 function exportFilteredCSV(){downloadText("ledger_filtered","csv",rowsToCSV(sorted(getFiltered())),"text/csv;charset=utf-8",true)}
@@ -2860,6 +3096,8 @@ function confirmImport(){
     if(rawData?.trash)trash=normTrash(rawData.trash);
     if(rawData?.logs)logs=normLogs(rawData.logs);
     if(rawData?.snapshots)snapshots=normSnaps(rawData.snapshots);
+    if(Array.isArray(rawData?.issueRecords))issueRecords=rawData.issueRecords;
+    if(Array.isArray(rawData?.installRecords))installRecords=rawData.installRecords;
     migrateAll();ensureUniqueIds();sortRows();
     pushSnapshot(`导入${pendingImport.type}`);saveState();renderAll();
     toast(`成功导入 ${importRows.length} 条记录`,"success");
@@ -2875,7 +3113,7 @@ function sanitizeExcelCell(v){
 }
 function exportExcel(list, prefix){
     const headers=CSV_HEADERS, keys=CSV_KEYS;
-    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>资产台账</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>td{border:1px solid #ccc;padding:4px 8px;}th{background:#0f172a;color:#fff;padding:6px 8px;}</style></head><body><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${list.map(r=>`<tr>${keys.map(k=>`<td>${sanitizeExcelCell(r[k])}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
+    const html=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>资产台账</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--><style>td{border:1px solid #ccc;padding:4px 8px;}th{background:#0f172a;color:#fff;padding:6px 8px;}</style></head><body><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${list.map(r=>`<tr>${keys.map(k=>`<td>${sanitizeExcelCell(k==="spec"?specSummary(r):r[k])}</td>`).join("")}</tr>`).join("")}</tbody></table></body></html>`;
     downloadText(prefix,"xls",html,"application/vnd.ms-excel",true);
 }
 function exportAllExcel(){exportExcel(sorted(rows),"ledger_all")}
@@ -2941,7 +3179,7 @@ async function refreshFolderStates(){
 async function uploadToSyncFile(){
     if(!syncDirHandle){alert("请先选择微盘同步文件夹");return false}
     if(!await ensurePerm(syncDirHandle)){alert("微盘没有写入权限");refreshFolderStates();return false}
-    try{const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots,issueRecords};const fh=await syncDirHandle.getFileHandle(FILE_NAME,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("上传微盘",{id:"SYSTEM"},`v${safeRemoteVersion}`);saveState();renderAll();refreshFolderStates();setSyncInfo(`已上传：v${safeRemoteVersion}`);alert("上传成功！");return true}catch(e){alert("上传失败："+e.message);return false}
+    try{const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots,issueRecords,installRecords};const fh=await syncDirHandle.getFileHandle(FILE_NAME,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("上传微盘",{id:"SYSTEM"},`v${safeRemoteVersion}`);saveState();renderAll();refreshFolderStates();setSyncInfo(`已上传：v${safeRemoteVersion}`);alert("上传成功！");return true}catch(e){alert("上传失败："+e.message);return false}
 }
 async function loadFromSyncFile(){
     if(!syncDirHandle){alert("请先选择微盘文件夹");return}
@@ -2955,14 +3193,14 @@ async function loadFromSyncFile(){
         // 覆盖前先保存快照，以便回退
         pushSnapshot("微盘加载前备份", "从微盘加载前自动备份");
 
-        rows=normRows(raw.rows||[]);trash=normTrash(raw.trash||[]);logs=normLogs(raw.logs||[]);snapshots=normSnaps(raw.snapshots||[]);issueRecords=Array.isArray(raw.issueRecords)?raw.issueRecords:[];safeRemoteVersion=raw.version||0;
+        rows=normRows(raw.rows||[]);trash=normTrash(raw.trash||[]);logs=normLogs(raw.logs||[]);snapshots=normSnaps(raw.snapshots||[]);issueRecords=Array.isArray(raw.issueRecords)?raw.issueRecords:[];installRecords=Array.isArray(raw.installRecords)?raw.installRecords:[];safeRemoteVersion=raw.version||0;
         migrateAll();ensureUniqueIds();sortRows();pushSnapshot("从微盘加载");saveState();renderAll();refreshFolderStates();setSyncInfo("已从微盘加载");alert("加载成功！")
     }catch(e){alert(`加载失败：${e.message}`)}
 }
 async function saveToBackupFile(){
     if(!backupDirHandle)return false;
     if(!await ensurePerm(backupDirHandle)){setSyncInfo("备份文件夹无权限");return false}
-    try{const fn=`${SAFE_BACKUP_PREFIX}_${todayYmd()}_${Date.now()}.json`;const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots,issueRecords};const fh=await backupDirHandle.getFileHandle(fn,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("备份",{id:"SYSTEM"},fn);saveState();refreshFolderStates();setSyncInfo(`已备份：${fn}`);return true}catch(e){setSyncInfo("备份失败："+e.message);return false}
+    try{const fn=`${SAFE_BACKUP_PREFIX}_${todayYmd()}_${Date.now()}.json`;const payload={version:(safeRemoteVersion||0)+1,updatedAt:new Date().toISOString(),updatedBy:getOp(),rows,trash,logs,snapshots,issueRecords,installRecords};const fh=await backupDirHandle.getFileHandle(fn,{create:true});const w=await fh.createWritable();await w.write(JSON.stringify(payload,null,2));await w.close();safeRemoteVersion=payload.version;addLog("备份",{id:"SYSTEM"},fn);saveState();refreshFolderStates();setSyncInfo(`已备份：${fn}`);return true}catch(e){setSyncInfo("备份失败："+e.message);return false}
 }
 
 /* ================================================================
@@ -2973,10 +3211,10 @@ async function saveNow(){
     try{pushSnapshot("立即保存");ensureUniqueIds();sortRows();const ok=await saveState();renderAll();refreshFolderStates();updateFreshness();let bok=true;if(backupDirHandle)bok=await saveToBackupFile();
         if(!ok)setSyncInfo("本地缓存写入有警告");else setSyncInfo(bok?(backupDirHandle?"已保存并备份":"已保存"):"已保存，备份失败")}catch(e){toast("保存失败："+e.message,"error");setSyncInfo("保存失败："+e.message)}
 }
-function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();refreshFolderStates();updatePillCounts();renderBorrowRecords();renderRepairRecords();renderInventoryRecords();renderTransferRecords()}
+function renderAll(){migrateAll();ensureUniqueIds();sortRows();renderTable();renderStats();renderCharts();renderLogs();renderTrash();renderSafeHistory();renderIssueRecords();renderInstallRecords();refreshFolderStates();updatePillCounts();renderBorrowRecords();renderRepairRecords();renderInventoryRecords();renderTransferRecords()}
 function resetDemo(){
     if(!confirm("确认恢复示例数据？当前数据将被覆盖。"))return;
-    rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];selectedSet.clear();idReserveSet.clear();safeRemoteVersion=0;
+    rows=normRows(clone(DEMO));rows.forEach(r=>r.uid=uid());trash=[];logs=[];snapshots=[];issueRecords=[];installRecords=[];selectedSet.clear();idReserveSet.clear();safeRemoteVersion=0;
     CATEGORY_TREE=clone(DEFAULT_CATEGORY_TREE);saveCatTree();
     migrateAll();ensureUniqueIds();sortRows();pushSnapshot("恢复示例");saveState();renderAll();
 }
@@ -3000,7 +3238,7 @@ function setupKeyboard(){
         else if(ctrl&&e.key==="s"){e.preventDefault();saveNow()}
         else if(ctrl&&e.key==="z"){e.preventDefault();if(snapshots.length>0){rollbackSnapshot(0)}else{alert("没有可撤销的快照")}}
         else if(e.key==="Delete"||e.key==="Del"){if(selectedSet.size>0){e.preventDefault();moveSelToTrash()}}
-        else if(e.key==="Escape"){["rowMask","batchMask","bulkEditMask","trashMask","importPreviewMask","catMgrMask"].forEach(id=>closeModal(id));closeLabelPrint();closeReceiptPreview();clearSel();document.querySelectorAll("details").forEach(d=>d.open=false)}
+        else if(e.key==="Escape"){["rowMask","batchMask","bulkEditMask","trashMask","importPreviewMask","catMgrMask","issueMask","machineConfigMask","installMask","releaseNotesMask"].forEach(id=>closeModal(id));closeLabelPrint();closeReceiptPreview();clearSel();document.querySelectorAll("details").forEach(d=>d.open=false)}
     });
 }
 
